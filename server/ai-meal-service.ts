@@ -7,7 +7,39 @@ const AI_SYSTEM_NAME = "NutriPlanAI";
 
 // USDA Nutrition API base URL
 const USDA_API_BASE_URL = 'https://api.nal.usda.gov/fdc/v1';
-const USDA_API_KEY = process.env.USDA_API_KEY || 'demo_key'; // Default to demo key for testing
+const USDA_API_KEY = process.env.USDA_API_KEY || process.env.NUTRITION_API_KEY || 'demo_key';
+
+// USDA API Integration
+async function getUSDANutritionData(foodName: string): Promise<NutritionInfo | null> {
+  try {
+    const response = await axios.get(`${USDA_API_BASE_URL}/foods/search`, {
+      params: {
+        api_key: USDA_API_KEY,
+        query: foodName,
+        dataType: ['Survey (FNDDS)', 'Foundation', 'SR Legacy'],
+        pageSize: 1
+      }
+    });
+
+    if (response.data?.foods?.length > 0) {
+      const food = response.data.foods[0];
+      const nutrients = food.foodNutrients;
+      
+      return {
+        calories: getNutrientValue(nutrients, 'Energy') || 0,
+        protein: getNutrientValue(nutrients, 'Protein') || 0,
+        carbs: getNutrientValue(nutrients, 'Carbohydrates') || 0,
+        fat: getNutrientValue(nutrients, 'Total Fat') || 0,
+        fiber: getNutrientValue(nutrients, 'Fiber') || 0,
+        sugar: getNutrientValue(nutrients, 'Sugars') || 0
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('USDA API Error:', error);
+    return null;
+  }
+}
 
 // Personal Health Factors - used by AI for more accurate recommendations
 interface HealthFactors {
@@ -146,19 +178,33 @@ async function aiEnhancedNutritionalAnalysis(mealName: string): Promise<Nutritio
  * meal components, preparation methods, and serving size
  */
 
-function aiCalculateMealScore(
-  meal: { name: string; cost: number },
+async function aiCalculateMealScore(
+  meal: { name: string; cost: number; ingredients: string[] },
   targetCalories: number,
   budget: number,
   healthGoal: string,
-  cuisinePreference: string
-): number {
-  const estimatedCalories = estimateCalories(meal.name);
-  const calorieMatch = 1 - Math.min(Math.abs(estimatedCalories - targetCalories) / targetCalories, 1);
+  cuisinePreference: string,
+  preferences: MealPlanRequest['preferences']
+): Promise<number> {
+  // Get USDA nutrition data for more accurate scoring
+  const usdaNutrition = await getUSDANutritionData(meal.name);
+  const calories = usdaNutrition?.calories || estimateCalories(meal.name);
+  
+  // Enhanced calorie matching using USDA data
+  const calorieMatch = 1 - Math.min(Math.abs(calories - targetCalories) / targetCalories, 1);
+  
+  // Budget optimization
   const budgetMatch = meal.cost <= budget ? 1 - (meal.cost / budget) * 0.5 : 0;
-  const healthGoalMatch = calculateHealthGoalMatch(meal.name, healthGoal);
+  
+  // Enhanced health goal matching using ingredients
+  const healthGoalMatch = await calculateEnhancedHealthGoalMatch(meal, healthGoal, usdaNutrition);
+  
+  // Cuisine and dietary preference matching
   const cuisineMatch = cuisinePreference === 'any' ? 1.0 : 
     meal.name.toLowerCase().includes(cuisinePreference.toLowerCase()) ? 1.0 : 0.3;
+    
+  // Check dietary restrictions
+  const dietaryMatch = checkDietaryCompliance(meal, preferences.dietaryRestrictions);
 
   return (
     decisionFactors.nutritionalBalance * calorieMatch +
@@ -168,22 +214,85 @@ function aiCalculateMealScore(
   );
 }
 
-function calculateHealthGoalMatch(mealName: string, healthGoal: string): number {
+async function calculateEnhancedHealthGoalMatch(
+  meal: { name: string; ingredients: string[] },
+  healthGoal: string,
+  usdaNutrition: NutritionInfo | null
+): Promise<number> {
   let score = 0.5;
+  const ingredients = meal.ingredients.join(' ').toLowerCase();
   
   switch(healthGoal) {
     case 'weight-loss':
-      score = mealName.match(/salad|grilled|lean|steamed/) ? 0.9 : 0.6;
+      score = ingredients.match(/salad|grilled|lean|steamed|vegetable|fish/) ? 0.9 : 0.6;
+      if (usdaNutrition) {
+        // Favor lower calorie, higher protein options
+        if (usdaNutrition.calories < 500 && usdaNutrition.protein > 20) {
+          score += 0.2;
+        }
+        // Favor high fiber content
+        if (usdaNutrition.fiber > 5) {
+          score += 0.1;
+        }
+      }
       break;
+      
     case 'muscle-gain':
-      score = mealName.match(/protein|chicken|beef|fish|egg/) ? 0.9 : 0.6;
+      score = ingredients.match(/protein|chicken|beef|fish|egg|greek yogurt|quinoa/) ? 0.9 : 0.6;
+      if (usdaNutrition) {
+        // Favor high protein, moderate calorie options
+        if (usdaNutrition.protein > 25 && usdaNutrition.calories > 400) {
+          score += 0.2;
+        }
+      }
       break;
+      
     case 'maintenance':
       score = 0.8;
+      if (usdaNutrition) {
+        // Favor balanced macros
+        const proteinCals = usdaNutrition.protein * 4;
+        const carbsCals = usdaNutrition.carbs * 4;
+        const fatCals = usdaNutrition.fat * 9;
+        const total = proteinCals + carbsCals + fatCals;
+        
+        if (total > 0) {
+          const proteinRatio = proteinCals / total;
+          const carbsRatio = carbsCals / total;
+          const fatRatio = fatCals / total;
+          
+          // Ideal ratios: ~30% protein, ~40% carbs, ~30% fat
+          if (proteinRatio >= 0.25 && carbsRatio >= 0.35 && fatRatio >= 0.25) {
+            score += 0.2;
+          }
+        }
+      }
       break;
   }
   
-  return score;
+  return Math.min(score, 1.0);
+}
+
+function checkDietaryCompliance(
+  meal: { name: string; ingredients: string[] },
+  restrictions: string
+): number {
+  if (restrictions === 'none') return 1.0;
+  
+  const ingredients = meal.ingredients.join(' ').toLowerCase();
+  
+  switch(restrictions) {
+    case 'vegetarian':
+      return ingredients.match(/chicken|beef|fish|pork|meat/) ? 0 : 1.0;
+    case 'vegan':
+      return ingredients.match(/chicken|beef|fish|pork|meat|egg|milk|cheese|yogurt|honey/) ? 0 : 1.0;
+    case 'gluten-free':
+      return ingredients.match(/wheat|bread|pasta|flour/) ? 0 : 1.0;
+    case 'dairy-free':
+      return ingredients.match(/milk|cheese|yogurt|cream/) ? 0 : 1.0;
+    default:
+      return 1.0;
+  }
 }
 
 function enhanceNutritionWithAI(baseNutrition: NutritionInfo, mealName: string): NutritionInfo {
