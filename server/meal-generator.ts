@@ -12,6 +12,7 @@ import {
   getRecipeInformation, 
   getRecipePriceBreakdown 
 } from './nutrition-api';
+import { generateMealPlanWithOllama } from './ollama-service';
 import { generateAIMealPlan } from './ai-meal-service';
 
 // Default meals for fallback if API requests fail
