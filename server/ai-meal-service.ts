@@ -9,15 +9,20 @@ const AI_SYSTEM_NAME = "NutriPlanAI";
 const USDA_API_BASE_URL = 'https://api.nal.usda.gov/fdc/v1';
 const USDA_API_KEY = process.env.USDA_API_KEY || process.env.NUTRITION_API_KEY || 'demo_key';
 
-// USDA API Integration
+// USDA API Integration with improved error handling and request formatting
 async function getUSDANutritionData(foodName: string): Promise<NutritionInfo | null> {
   try {
+    // Clean and format the query string
+    const cleanQuery = foodName.replace(/[^\w\s-]/g, '').trim();
+    
     const response = await axios.get(`${USDA_API_BASE_URL}/foods/search`, {
       params: {
         api_key: USDA_API_KEY,
-        query: foodName,
-        dataType: ['Survey (FNDDS)', 'Foundation', 'SR Legacy'],
-        pageSize: 1
+        query: cleanQuery,
+        dataType: 'Foundation,SR Legacy,Survey (FNDDS)', // Format as comma-separated string
+        pageSize: 1,
+        sortBy: 'dataType.keyword',
+        sortOrder: 'desc'
       }
     });
 
@@ -186,12 +191,27 @@ async function aiCalculateMealScore(
   cuisinePreference: string,
   preferences: MealPlanRequest['preferences']
 ): Promise<number> {
-  // Get USDA nutrition data for more accurate scoring
-  const usdaNutrition = await getUSDANutritionData(meal.name);
-  const calories = usdaNutrition?.calories || estimateCalories(meal.name);
-  
-  // Enhanced calorie matching using USDA data
-  const calorieMatch = 1 - Math.min(Math.abs(calories - targetCalories) / targetCalories, 1);
+  try {
+    // Safe access to preferences with fallbacks
+    const dietaryRestrictions = preferences?.dietaryRestrictions || 'none';
+    const dislikedIngredients = preferences?.dislikedIngredients ? 
+      preferences.dislikedIngredients.toLowerCase().split(',').map(i => i.trim()) : [];
+    
+    // Check for disliked ingredients first
+    const hasDislikedIngredients = dislikedIngredients.some(ingredient => 
+      meal.ingredients.some(i => i.toLowerCase().includes(ingredient))
+    );
+    if (hasDislikedIngredients) {
+      return 0; // Immediately disqualify meals with disliked ingredients
+    }
+
+    // Get USDA nutrition data for more accurate scoring
+    const usdaNutrition = await getUSDANutritionData(meal.name);
+    const calories = usdaNutrition?.calories || estimateCalories(meal.name);
+    
+    // Enhanced calorie matching using USDA data with weighted importance
+    const calorieMatch = 1 - Math.min(Math.abs(calories - targetCalories) / targetCalories, 1);
+    const calorieScore = calorieMatch * 0.3; // 30% weight for calorie matching
   
   // Budget optimization
   const budgetMatch = meal.cost <= budget ? 1 - (meal.cost / budget) * 0.5 : 0;
@@ -275,23 +295,40 @@ async function calculateEnhancedHealthGoalMatch(
 
 function checkDietaryCompliance(
   meal: { name: string; ingredients: string[] },
-  restrictions: string
+  restrictions: string = 'none'
 ): number {
-  if (restrictions === 'none') return 1.0;
-  
-  const ingredients = meal.ingredients.join(' ').toLowerCase();
-  
-  switch(restrictions) {
-    case 'vegetarian':
-      return ingredients.match(/chicken|beef|fish|pork|meat/) ? 0 : 1.0;
-    case 'vegan':
-      return ingredients.match(/chicken|beef|fish|pork|meat|egg|milk|cheese|yogurt|honey/) ? 0 : 1.0;
-    case 'gluten-free':
-      return ingredients.match(/wheat|bread|pasta|flour/) ? 0 : 1.0;
-    case 'dairy-free':
-      return ingredients.match(/milk|cheese|yogurt|cream/) ? 0 : 1.0;
-    default:
-      return 1.0;
+  try {
+    if (!meal?.ingredients) {
+      console.warn('Missing ingredients for dietary compliance check:', meal);
+      return 0.5; // Neutral score when data is missing
+    }
+
+    if (restrictions === 'none') return 1.0;
+    
+    const ingredients = meal.ingredients.join(' ').toLowerCase();
+    
+    const restrictionPatterns: Record<string, RegExp> = {
+      'vegetarian': /\b(chicken|beef|fish|pork|meat|gelatin)\b/,
+      'vegan': /\b(chicken|beef|fish|pork|meat|egg|milk|cheese|yogurt|honey|gelatin)\b/,
+      'gluten-free': /\b(wheat|barley|rye|bread|pasta|flour(?!( free)))\b/,
+      'dairy-free': /\b(milk|cheese|yogurt|cream|butter|whey)\b/,
+      'keto': /\b(sugar|bread|pasta|rice|potato|corn)\b/,
+      'paleo': /\b(grain|dairy|processed|sugar|legume)\b/
+    };
+
+    const pattern = restrictionPatterns[restrictions];
+    if (!pattern) {
+      console.warn('Unknown dietary restriction:', restrictions);
+      return 0.8; // More lenient score for unknown restrictions
+    }
+
+    const hasRestrictedIngredients = pattern.test(ingredients);
+    console.log(`Dietary compliance check for ${meal.name}: ${restrictions} - Compliant: ${!hasRestrictedIngredients}`);
+    
+    return hasRestrictedIngredients ? 0 : 1.0;
+  } catch (error) {
+    console.error('Error in dietary compliance check:', error);
+    return 0.5; // Neutral score on error
   }
 }
 
