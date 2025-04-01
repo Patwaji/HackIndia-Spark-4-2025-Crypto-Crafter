@@ -204,7 +204,7 @@ async function aiCalculateMealScore(
     meal.name.toLowerCase().includes(cuisinePreference.toLowerCase()) ? 1.0 : 0.3;
     
   // Check dietary restrictions
-  const dietaryMatch = checkDietaryCompliance(meal, preferences.dietaryRestrictions);
+  const dietaryMatch = checkDietaryCompliance(meal, preferences?.dietaryRestrictions || 'none');
 
   return (
     decisionFactors.nutritionalBalance * calorieMatch +
