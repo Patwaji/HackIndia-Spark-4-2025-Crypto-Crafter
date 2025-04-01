@@ -405,13 +405,45 @@ async function generateSingleMeal(
   preferences: MealPlanRequest['preferences'],
   goals: MealPlanRequest['goals']
 ): Promise<Meal> {
-  // Get meal options for this meal type based on preferences
-  const mealOptions = getMealOptionsByType(mealType, preferences.dietaryRestrictions);
+  // Get base meal options
+  let mealOptions = getMealOptionsByType(mealType, preferences.dietaryRestrictions);
   
-  // Apply advanced AI analysis to select the optimal meal
+  // Fetch additional options from USDA API based on preferences
+  try {
+    const searchTerms = [
+      mealType,
+      preferences.cuisineType !== 'any' ? preferences.cuisineType : '',
+      preferences.dietaryRestrictions !== 'none' ? preferences.dietaryRestrictions : ''
+    ].filter(Boolean).join(' ');
+    
+    const response = await axios.get(`${USDA_API_BASE_URL}/foods/search`, {
+      params: {
+        api_key: USDA_API_KEY,
+        query: searchTerms,
+        dataType: ["Survey (FNDDS)", "Foundation", "SR Legacy"],
+        pageSize: 10
+      }
+    });
+
+    if (response.data?.foods) {
+      const usdaMeals = response.data.foods.map((food: any) => ({
+        name: food.description,
+        cost: estimateCost(food),
+        ingredients: [food.description],
+        instructions: ["Prepare according to package instructions"]
+      }));
+      
+      mealOptions = [...mealOptions, ...usdaMeals];
+    }
+  } catch (error) {
+    console.error('USDA API error:', error);
+    // Continue with base options if API fails
+  }
+
+  // Apply advanced AI analysis with randomization
   console.log(`${AI_SYSTEM_NAME} v${AI_SYSTEM_VERSION}: Analyzing meal options for ${mealType}...`);
   
-  // Get suitable meal options based on AI scoring
+  // Score and randomize meals
   const suitableMeals = mealOptions
     .map(meal => ({
       meal,
@@ -420,11 +452,14 @@ async function generateSingleMeal(
         targetCalories,
         budget,
         goals.primaryGoal,
-        preferences.cuisineType
+        preferences.cuisineType,
+        { preferences }
       )
     }))
-    .filter(({ score }) => score > 0.6) // Only keep meals with good scores
-    .sort(() => Math.random() - 0.5); // Randomize order
+    .filter(({ score }) => score > 0.6)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3) // Take top 3 options
+    .sort(() => Math.random() - 0.5); // Final randomization
 
   // Select a random meal from suitable options, or fallback to best match
   const selectedMeal = suitableMeals.length > 0 
@@ -498,6 +533,26 @@ async function fetchNutritionInfo(mealName: string): Promise<NutritionInfo> {
 function getNutrientValue(nutrients: any[], nutrientName: string): number {
   const nutrient = nutrients.find(n => n.nutrientName.includes(nutrientName));
   return nutrient ? nutrient.value : 0;
+}
+
+function estimateCost(food: any): number {
+  // Base cost calculation using portion size and food category
+  const basePrice = 5.00; // Base price for a standard portion
+  const portionSize = food.servingSize || 100;
+  const category = food.foodCategory || '';
+  
+  // Adjust price based on food category
+  let multiplier = 1.0;
+  if (category.toLowerCase().includes('meat') || category.toLowerCase().includes('fish')) {
+    multiplier = 1.5;
+  } else if (category.toLowerCase().includes('vegetable') || category.toLowerCase().includes('fruit')) {
+    multiplier = 0.8;
+  } else if (category.toLowerCase().includes('grain') || category.toLowerCase().includes('bread')) {
+    multiplier = 0.6;
+  }
+  
+  // Calculate final cost
+  return Number(((basePrice * multiplier * (portionSize / 100))).toFixed(2));
 }
 
 /**
