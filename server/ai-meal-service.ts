@@ -486,7 +486,7 @@ async function generateSingleMeal(
   // Apply advanced AI analysis with randomization
   console.log(`${AI_SYSTEM_NAME} v${AI_SYSTEM_VERSION}: Analyzing meal options for ${mealType}...`);
   
-  // Score and randomize meals
+  // Score and randomize meals with improved variety
   const suitableMeals = mealOptions
     .map(meal => ({
       meal,
@@ -497,12 +497,18 @@ async function generateSingleMeal(
         goals.primaryGoal,
         preferences.cuisineType,
         { preferences }
-      )
+      ),
+      random: Math.random() // Add random factor
     }))
-    .filter(({ score }) => score > 0.6)
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 3) // Take top 3 options
-    .sort(() => Math.random() - 0.5); // Final randomization
+    .filter(({ score }) => score > 0.5) // Lower threshold for more variety
+    .sort((a, b) => {
+      // Combined score: 70% original score, 30% randomization
+      const aTotal = (a.score * 0.7) + (a.random * 0.3);
+      const bTotal = (b.score * 0.7) + (b.random * 0.3);
+      return bTotal - aTotal;
+    })
+    .slice(0, Math.min(5, mealOptions.length)) // Take more options
+    .sort(() => Math.random() - 0.5); // Final shuffle
 
   // Select a random meal from suitable options, or fallback to best match
   const selectedMeal = suitableMeals.length > 0 
