@@ -213,8 +213,14 @@ async function aiCalculateMealScore(
     const calorieMatch = 1 - Math.min(Math.abs(calories - targetCalories) / targetCalories, 1);
     const calorieScore = calorieMatch * 0.3; // 30% weight for calorie matching
   
-  // Budget optimization
-  const budgetMatch = meal.cost <= budget ? 1 - (meal.cost / budget) * 0.5 : 0;
+    // Budget optimization
+    const budgetMatch = meal.cost <= budget ? 1 - (meal.cost / budget) * 0.5 : 0;
+
+    return (calorieScore + budgetMatch) / 2;
+  } catch (error) {
+    console.error('Error calculating meal score:', error);
+    return 0;
+  }
   
   // Enhanced health goal matching using ingredients
   const healthGoalMatch = await calculateEnhancedHealthGoalMatch(meal, healthGoal, usdaNutrition);
