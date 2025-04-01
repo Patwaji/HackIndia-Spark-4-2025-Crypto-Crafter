@@ -14,7 +14,7 @@ async function getUSDANutritionData(foodName: string): Promise<NutritionInfo | n
   try {
     // Clean and format the query string
     const cleanQuery = foodName.replace(/[^\w\s-]/g, '').trim();
-    
+
     const response = await axios.get(`${USDA_API_BASE_URL}/foods/search`, {
       params: {
         api_key: USDA_API_KEY,
@@ -29,7 +29,7 @@ async function getUSDANutritionData(foodName: string): Promise<NutritionInfo | n
     if (response.data?.foods?.length > 0) {
       const food = response.data.foods[0];
       const nutrients = food.foodNutrients;
-      
+
       return {
         calories: getNutrientValue(nutrients, 'Energy') || 0,
         protein: getNutrientValue(nutrients, 'Protein') || 0,
@@ -84,17 +84,17 @@ const decisionFactors = {
 export async function generateAIMealPlan(request: MealPlanRequest): Promise<MealPlan> {
   try {
     const { preferences, goals, budget } = request;
-    
+
     // Generate meal suggestions based on user preferences
     const meals = await generateMealSuggestions(preferences, goals, budget);
-    
+
     // Calculate total nutrition
     const totalNutrition = calculateTotalNutrition(meals);
-    
+
     // Calculate total cost
     const totalCost = meals.breakfast.cost + meals.lunch.cost + 
                       meals.snack.cost + meals.dinner.cost;
-    
+
     // Create the complete meal plan
     const mealPlan: MealPlan = {
       breakfast: meals.breakfast,
@@ -104,7 +104,7 @@ export async function generateAIMealPlan(request: MealPlanRequest): Promise<Meal
       totalNutrition,
       totalCost
     };
-    
+
     return mealPlan;
   } catch (error) {
     console.error('Error generating AI meal plan:', error);
@@ -146,7 +146,7 @@ async function generateMealSuggestions(
 
   // Diet-specific adjustments
   const dietType = preferences.dietaryRestrictions;
-  
+
   // Generate meal suggestions based on cuisine preference and dietary restrictions
   return {
     breakfast: await generateSingleMeal('breakfast', breakfastCalories, mealBudget.breakfast || Math.round(budget.dailyBudget * 0.25), preferences, goals),
@@ -165,10 +165,10 @@ async function aiEnhancedNutritionalAnalysis(mealName: string): Promise<Nutritio
   try {
     // First try to get data from external nutrition API
     const nutritionInfo = await fetchNutritionInfo(mealName);
-    
+
     // Apply AI enhancement to improve accuracy based on ingredients and cooking methods
     const enhancedNutrition = enhanceNutritionWithAI(nutritionInfo, mealName);
-    
+
     console.log(`${AI_SYSTEM_NAME}: AI enhancement applied to nutrition data`);
     return enhancedNutrition;
   } catch (error) {
@@ -196,7 +196,7 @@ async function aiCalculateMealScore(
     const dietaryRestrictions = preferences?.dietaryRestrictions || 'none';
     const dislikedIngredients = preferences?.dislikedIngredients ? 
       preferences.dislikedIngredients.toLowerCase().split(',').map(i => i.trim()) : [];
-    
+
     // Check for disliked ingredients first
     const hasDislikedIngredients = dislikedIngredients.some(ingredient => 
       meal.ingredients.some(i => i.toLowerCase().includes(ingredient))
@@ -208,11 +208,11 @@ async function aiCalculateMealScore(
     // Get USDA nutrition data for more accurate scoring
     const usdaNutrition = await getUSDANutritionData(meal.name);
     const calories = usdaNutrition?.calories || estimateCalories(meal.name);
-    
+
     // Enhanced calorie matching using USDA data with weighted importance
     const calorieMatch = 1 - Math.min(Math.abs(calories - targetCalories) / targetCalories, 1);
     const calorieScore = calorieMatch * 0.3; // 30% weight for calorie matching
-  
+
     // Budget optimization
     const budgetMatch = meal.cost <= budget ? 1 - (meal.cost / budget) * 0.5 : 0;
 
@@ -221,14 +221,14 @@ async function aiCalculateMealScore(
     console.error('Error calculating meal score:', error);
     return 0;
   }
-  
+
   // Enhanced health goal matching using ingredients
   const healthGoalMatch = await calculateEnhancedHealthGoalMatch(meal, healthGoal, usdaNutrition);
-  
+
   // Cuisine and dietary preference matching
   const cuisineMatch = cuisinePreference === 'any' ? 1.0 : 
     meal.name.toLowerCase().includes(cuisinePreference.toLowerCase()) ? 1.0 : 0.3;
-    
+
   // Check dietary restrictions
   const dietaryMatch = checkDietaryCompliance(meal, preferences?.dietaryRestrictions || 'none');
 
@@ -247,7 +247,7 @@ async function calculateEnhancedHealthGoalMatch(
 ): Promise<number> {
   let score = 0.5;
   const ingredients = meal.ingredients.join(' ').toLowerCase();
-  
+
   switch(healthGoal) {
     case 'weight-loss':
       score = ingredients.match(/salad|grilled|lean|steamed|vegetable|fish/) ? 0.9 : 0.6;
@@ -262,7 +262,7 @@ async function calculateEnhancedHealthGoalMatch(
         }
       }
       break;
-      
+
     case 'muscle-gain':
       score = ingredients.match(/protein|chicken|beef|fish|egg|greek yogurt|quinoa/) ? 0.9 : 0.6;
       if (usdaNutrition) {
@@ -272,7 +272,7 @@ async function calculateEnhancedHealthGoalMatch(
         }
       }
       break;
-      
+
     case 'maintenance':
       score = 0.8;
       if (usdaNutrition) {
@@ -281,12 +281,12 @@ async function calculateEnhancedHealthGoalMatch(
         const carbsCals = usdaNutrition.carbs * 4;
         const fatCals = usdaNutrition.fat * 9;
         const total = proteinCals + carbsCals + fatCals;
-        
+
         if (total > 0) {
           const proteinRatio = proteinCals / total;
           const carbsRatio = carbsCals / total;
           const fatRatio = fatCals / total;
-          
+
           // Ideal ratios: ~30% protein, ~40% carbs, ~30% fat
           if (proteinRatio >= 0.25 && carbsRatio >= 0.35 && fatRatio >= 0.25) {
             score += 0.2;
@@ -295,7 +295,7 @@ async function calculateEnhancedHealthGoalMatch(
       }
       break;
   }
-  
+
   return Math.min(score, 1.0);
 }
 
@@ -310,9 +310,9 @@ function checkDietaryCompliance(
     }
 
     if (restrictions === 'none') return 1.0;
-    
+
     const ingredients = meal.ingredients.join(' ').toLowerCase();
-    
+
     const restrictionPatterns: Record<string, RegExp> = {
       'vegetarian': /\b(chicken|beef|fish|pork|meat|gelatin)\b/,
       'vegan': /\b(chicken|beef|fish|pork|meat|egg|milk|cheese|yogurt|honey|gelatin)\b/,
@@ -330,7 +330,7 @@ function checkDietaryCompliance(
 
     const hasRestrictedIngredients = pattern.test(ingredients);
     console.log(`Dietary compliance check for ${meal.name}: ${restrictions} - Compliant: ${!hasRestrictedIngredients}`);
-    
+
     return hasRestrictedIngredients ? 0 : 1.0;
   } catch (error) {
     console.error('Error in dietary compliance check:', error);
@@ -341,7 +341,7 @@ function checkDietaryCompliance(
 function enhanceNutritionWithAI(baseNutrition: NutritionInfo, mealName: string): NutritionInfo {
   // Starting with the base nutrition values
   const enhanced = { ...baseNutrition };
-  
+
   // Analyze cooking methods for more accurate fat content
   if (mealName.match(/fried|sautéed/i)) {
     enhanced.fat = Math.round(enhanced.fat * 1.2); // Increase fat estimate
@@ -350,12 +350,12 @@ function enhanceNutritionWithAI(baseNutrition: NutritionInfo, mealName: string):
     enhanced.fat = Math.round(enhanced.fat * 0.9); // Reduce fat estimate
     enhanced.calories -= (baseNutrition.fat * 9 - enhanced.fat * 9); // Adjust calories
   }
-  
+
   // Adjust protein based on protein source quality
   if (mealName.match(/chicken|turkey|fish|egg/i)) {
     enhanced.protein = Math.round(enhanced.protein * 1.1); // Higher quality protein
   }
-  
+
   // Adjust carbs based on whole vs. refined grains
   if (mealName.match(/whole grain|brown rice|quinoa|oats/i)) {
     // Handle potentially undefined values
@@ -364,14 +364,14 @@ function enhanceNutritionWithAI(baseNutrition: NutritionInfo, mealName: string):
     } else {
       enhanced.fiber = Math.round((enhanced.carbs || 0) * 0.1); // Estimate if missing
     }
-    
+
     if (enhanced.sugar !== undefined) {
       enhanced.sugar = Math.round(enhanced.sugar * 0.9); // Less sugar impact
     } else {
       enhanced.sugar = Math.round((enhanced.carbs || 0) * 0.05); // Estimate if missing
     }
   }
-  
+
   return enhanced;
 }
 
@@ -389,18 +389,18 @@ function aiSelectOptimalMeal(
   if (mealOptions.length === 0) {
     throw new Error('No meal options available that match criteria');
   }
-  
+
   // Score each meal based on multiple weighted factors
   const scoredMeals = mealOptions.map(meal => {
     // Estimated calories for this meal
     const estimatedCalories = estimateCalories(meal.name);
-    
+
     // Calculate how well this meal matches the calorie target (lower is better)
     const calorieMatch = 1 - Math.min(Math.abs(estimatedCalories - targetCalories) / targetCalories, 1);
-    
+
     // Calculate budget match (higher is better)
     const budgetMatch = meal.cost <= budget ? 1 - (meal.cost / budget) * 0.5 : 0;
-    
+
     // Calculate health goal match
     let healthGoalMatch = 0.5; // Default neutral score
     if (healthGoal === 'weight-loss' && estimatedCalories <= targetCalories) {
@@ -414,11 +414,11 @@ function aiSelectOptimalMeal(
     } else if (healthGoal === 'maintenance' && Math.abs(estimatedCalories - targetCalories) < 100) {
       healthGoalMatch = 0.9;
     }
-    
+
     // Calculate cuisine preference match
     const cuisineMatch = cuisinePreference === 'any' ? 1.0 : 
       meal.name.toLowerCase().includes(cuisinePreference.toLowerCase()) ? 1.0 : 0.3;
-    
+
     // Apply AI decision factors to calculate final score
     const score = (
       decisionFactors.nutritionalBalance * calorieMatch +
@@ -426,15 +426,15 @@ function aiSelectOptimalMeal(
       decisionFactors.healthGoalAlignment * healthGoalMatch +
       decisionFactors.preferenceMatching * cuisineMatch
     );
-    
+
     return { meal, score };
   });
-  
+
   // Sort by score (highest first) and return the best match
   scoredMeals.sort((a, b) => b.score - a.score);
-  
+
   console.log(`${AI_SYSTEM_NAME}: Selected "${scoredMeals[0].meal.name}" with a match score of ${scoredMeals[0].score.toFixed(2)}`);
-  
+
   return scoredMeals[0].meal;
 }
 
@@ -450,86 +450,63 @@ async function generateSingleMeal(
 ): Promise<Meal> {
   // Get base meal options
   let mealOptions = getMealOptionsByType(mealType, preferences.dietaryRestrictions);
-  
-  // Fetch additional options from USDA API based on preferences
-  try {
-    const searchTerms = [
-      mealType,
-      preferences.cuisineType !== 'any' ? preferences.cuisineType : '',
-      preferences.dietaryRestrictions !== 'none' ? preferences.dietaryRestrictions : ''
-    ].filter(Boolean).join(' ');
-    
-    const response = await axios.get(`${USDA_API_BASE_URL}/foods/search`, {
-      params: {
-        api_key: USDA_API_KEY,
-        query: searchTerms,
-        dataType: ["Survey (FNDDS)", "Foundation", "SR Legacy"],
-        pageSize: 10
-      }
-    });
 
-    if (response.data?.foods) {
-      const usdaMeals = response.data.foods.map((food: any) => ({
-        name: food.description,
-        cost: estimateCost(food),
-        ingredients: [food.description],
-        instructions: ["Prepare according to package instructions"]
-      }));
-      
-      mealOptions = [...mealOptions, ...usdaMeals];
-    }
-  } catch (error) {
-    console.error('USDA API error:', error);
-    // Continue with base options if API fails
+  // Create a cache key based on request parameters
+  const cacheKey = `${mealType}-${Date.now()}`;
+
+  // Get previously selected meals from memory cache (last 10 selections)
+  const recentMeals = (global as any).recentMealSelections || new Set();
+
+  // Filter out recently used meals
+  mealOptions = mealOptions.filter(meal => !recentMeals.has(meal.name));
+
+  // If we've filtered too many options, reset the cache
+  if (mealOptions.length < 3) {
+    recentMeals.clear();
+    mealOptions = getMealOptionsByType(mealType, preferences.dietaryRestrictions);
   }
 
-  // Apply advanced AI analysis with randomization
-  console.log(`${AI_SYSTEM_NAME} v${AI_SYSTEM_VERSION}: Analyzing meal options for ${mealType}...`);
-  
-  // Create truly randomized meal selection with scoring
-  const suitableMeals = mealOptions
-    .map(meal => ({
+  // Completely randomize available options
+  mealOptions = mealOptions.sort(() => Math.random() - 0.5);
+
+  // Score meals
+  const scoredMeals = mealOptions.map(meal => ({
+    meal,
+    score: aiCalculateMealScore(
       meal,
-      score: aiCalculateMealScore(
-        meal,
-        targetCalories,
-        budget,
-        goals.primaryGoal,
-        preferences.cuisineType,
-        { preferences }
-      ),
-      random: Math.random() // Pure random factor
-    }))
-    .filter(({ score }) => score > 0.3) // Lower threshold significantly
-    // First randomize the order completely
-    .sort(() => Math.random() - 0.5)
-    // Then take a larger subset of meals
-    .slice(0, Math.max(Math.floor(mealOptions.length * 0.6), 5))
-    // Finally select based on combined score and random factor
+      targetCalories,
+      budget,
+      goals.primaryGoal,
+      preferences.cuisineType,
+      { preferences }
+    ),
+    random: Math.random() * 2 - 1 // Random factor between -1 and 1
+  }));
+
+  // Filter suitable meals
+  const suitableMeals = scoredMeals
+    .filter(({ score }) => score > 0.2) // Lower threshold for more variety
     .map(item => ({
       ...item,
-      finalScore: (item.score * 0.3) + (item.random * 0.7) // Heavily weight randomness
+      finalScore: (item.score * 0.2) + (item.random * 0.8) // 80% random, 20% score
     }))
-    .sort(() => Math.random() - 0.5); // Final shuffle
+    .sort((a, b) => b.finalScore - a.finalScore); // Sort by final score
 
-  // Select a random meal from suitable options, or fallback to best match
-  const selectedMeal = suitableMeals.length > 0 
-    ? suitableMeals[0].meal
-    : aiSelectOptimalMeal(
-        mealOptions, 
-        targetCalories, 
-        budget, 
-        goals.primaryGoal,
-        preferences.cuisineType
-      );
-  
+  // Select the top meal
+  const selectedMeal = suitableMeals.length > 0 ? suitableMeals[0].meal : aiSelectOptimalMeal(mealOptions, targetCalories, budget, goals.primaryGoal, preferences.cuisineType);
+
+
+  // Add selected meal to recent meals cache
+  recentMeals.add(selectedMeal.name);
+  (global as any).recentMealSelections = recentMeals;
+
   // Get nutrition information for the selected meal with enhanced AI analysis
   console.log(`${AI_SYSTEM_NAME}: Performing nutritional analysis for "${selectedMeal.name}"...`);
   const nutrition = await aiEnhancedNutritionalAnalysis(selectedMeal.name);
-  
+
   // Ensure mealType is one of the allowed types
   const validType = mealType as "breakfast" | "lunch" | "snack" | "dinner";
-  
+
   return {
     name: selectedMeal.name,
     type: validType,
@@ -555,11 +532,11 @@ async function fetchNutritionInfo(mealName: string): Promise<NutritionInfo> {
         pageSize: 1
       }
     });
-    
+
     if (response.data?.foods?.length > 0) {
       const food = response.data.foods[0];
       const nutrients = food.foodNutrients;
-      
+
       return {
         calories: getNutrientValue(nutrients, 'Energy') || estimateCalories(mealName),
         protein: getNutrientValue(nutrients, 'Protein') || 0,
@@ -569,7 +546,7 @@ async function fetchNutritionInfo(mealName: string): Promise<NutritionInfo> {
         sugar: getNutrientValue(nutrients, 'Sugars, total including NLEA') || 0
       };
     }
-    
+
     // Fall back to estimation if not found
     return estimateNutrition(mealName);
   } catch (error) {
@@ -591,7 +568,7 @@ function estimateCost(food: any): number {
   const basePrice = 5.00; // Base price for a standard portion
   const portionSize = food.servingSize || 100;
   const category = food.foodCategory || '';
-  
+
   // Adjust price based on food category
   let multiplier = 1.0;
   if (category.toLowerCase().includes('meat') || category.toLowerCase().includes('fish')) {
@@ -601,7 +578,7 @@ function estimateCost(food: any): number {
   } else if (category.toLowerCase().includes('grain') || category.toLowerCase().includes('bread')) {
     multiplier = 0.6;
   }
-  
+
   // Calculate final cost
   return Number(((basePrice * multiplier * (portionSize / 100))).toFixed(2));
 }
@@ -617,14 +594,14 @@ function estimateNutrition(mealName: string): NutritionInfo {
   let fat = 0;
   let fiber = 0;
   let sugar = 0;
-  
+
   // Protein estimation
   if (mealName.match(/chicken|beef|fish|turkey|tofu|egg|protein/i)) {
     protein = Math.round(calories * 0.3 / 4); // 30% of calories from protein (4 cal/g)
   } else {
     protein = Math.round(calories * 0.15 / 4); // 15% of calories from protein
   }
-  
+
   // Carbs estimation
   if (mealName.match(/bread|pasta|rice|potato|grain|cereal|oat/i)) {
     carbs = Math.round(calories * 0.6 / 4); // 60% of calories from carbs (4 cal/g)
@@ -635,12 +612,12 @@ function estimateNutrition(mealName: string): NutritionInfo {
     fiber = Math.round(carbs * 0.08); // 8% of carbs as fiber
     sugar = Math.round(carbs * 0.15); // 15% of carbs as sugar
   }
-  
+
   // Fat estimation (remainder of calories)
   const proteinCalories = protein * 4;
   const carbCalories = carbs * 4;
   fat = Math.round((calories - proteinCalories - carbCalories) / 9); // 9 cal/g for fat
-  
+
   return {
     calories,
     protein,
@@ -667,13 +644,13 @@ function estimateCalories(mealName: string): number {
   } else {
     // Default estimation based on common components
     let estimate = 300; // Base calories
-    
+
     if (mealName.match(/chicken|beef|meat/i)) estimate += 200;
     if (mealName.match(/rice|pasta|potato/i)) estimate += 150;
     if (mealName.match(/cheese|cream/i)) estimate += 100;
     if (mealName.match(/salad|vegetable/i)) estimate += 50;
     if (mealName.match(/oil|fried/i)) estimate += 150;
-    
+
     return estimate;
   }
 }
@@ -734,7 +711,7 @@ function getMealOptionsByType(mealType: string, dietaryRestrictions: string) {
   const isVegetarian = dietaryRestrictions.includes('vegetarian');
   const isVegan = dietaryRestrictions.includes('vegan');
   const isGlutenFree = dietaryRestrictions.includes('gluten-free');
-  
+
   // Collection of meal options by type
   const mealOptions: {
     name: string;
@@ -742,7 +719,7 @@ function getMealOptionsByType(mealType: string, dietaryRestrictions: string) {
     ingredients: string[];
     instructions?: string[];
   }[] = [];
-  
+
   if (mealType === 'breakfast') {
     if (isVegan) {
       mealOptions.push(
@@ -826,8 +803,7 @@ function getMealOptionsByType(mealType: string, dietaryRestrictions: string) {
         },
         {
           name: 'Protein Pancakes with Berries',
-          cost: 6.25,
-          ingredients: ['1 cup pancake mix', '1 scoop protein powder', '1/2 cup mixed berries', '1 tbsp maple syrup'],
+          cost: 6.25,ingredients: ['1 cup pancake mix', '1 scoop protein powder', '1/2 cup mixed berries', '1 tbsp maple syrup'],
           instructions: [
             'Mix pancake mix with protein powder and water',
             'Cook pancakes on a griddle until golden brown',
@@ -1149,7 +1125,7 @@ function getMealOptionsByType(mealType: string, dietaryRestrictions: string) {
       );
     }
   }
-  
+
   // Apply gluten-free filter if needed
   if (isGlutenFree) {
     return mealOptions.filter(meal => 
@@ -1161,7 +1137,7 @@ function getMealOptionsByType(mealType: string, dietaryRestrictions: string) {
       )
     );
   }
-  
+
   return mealOptions;
 }
 
@@ -1184,28 +1160,28 @@ function selectAppropriateOption(
       instructions: ["Prepare ingredients as desired", "Combine and enjoy"]
     };
   }
-  
+
   // Filter by budget first
   const affordableOptions = options.filter(option => option.cost <= budget);
-  
+
   // If nothing is affordable, return the cheapest option
   if (affordableOptions.length === 0) {
     options.sort((a, b) => a.cost - b.cost);
     return options[0];
   }
-  
+
   // For each option, estimate calories and find the one closest to target
   const optionsWithCalories = affordableOptions.map(option => ({
     ...option,
     estimatedCalories: estimateCalories(option.name)
   }));
-  
+
   // Sort by how close they are to the target calories
   optionsWithCalories.sort((a, b) => 
     Math.abs(a.estimatedCalories - targetCalories) - 
     Math.abs(b.estimatedCalories - targetCalories)
   );
-  
+
   // Return the best match
   return optionsWithCalories[0];
 }
