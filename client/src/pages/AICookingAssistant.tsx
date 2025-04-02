@@ -1,82 +1,61 @@
-
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
+import { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
+import axios from 'axios';
 
 export default function AICookingAssistant() {
-  const [userInput, setUserInput] = useState('');
-  const [conversation, setConversation] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
-  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [conversation, setConversation] = useState<{type: 'user' | 'assistant', content: string}[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendMessage = async () => {
-    if (!userInput.trim()) return;
-    
-    setLoading(true);
-    const newMessage = { role: 'user' as const, content: userInput };
-    setConversation(prev => [...prev, newMessage]);
-    setUserInput('');
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
 
     try {
-      const response = await fetch('/api/cooking-assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userInput })
-      });
-      
-      const data = await response.json();
-      setConversation(prev => [...prev, { role: 'assistant', content: data.response }]);
+      setIsLoading(true);
+      // Add user message to conversation
+      setConversation(prev => [...prev, { type: 'user', content: message }]);
+
+      // Send message to AI
+      const response = await axios.post('/api/cooking-assistant', { message });
+
+      // Add AI response to conversation
+      setConversation(prev => [...prev, { type: 'assistant', content: response.data.response }]);
+      setMessage('');
     } catch (error) {
       console.error('Failed to get AI response:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-4 max-w-3xl">
       <h1 className="text-3xl font-bold mb-6">AI Cooking Assistant</h1>
-      
-      <Card className="mb-6 p-4">
-        <div className="space-y-4 mb-4 max-h-[60vh] overflow-y-auto">
-          {conversation.map((message, index) => (
-            <div
-              key={index}
-              className={`p-4 rounded-lg ${
-                message.role === 'user' 
-                  ? 'bg-primary/10 ml-12' 
-                  : 'bg-secondary/10 mr-12'
-              }`}
-            >
-              <p className="text-sm font-medium mb-1">
-                {message.role === 'user' ? 'You' : 'AI Assistant'}
-              </p>
-              <p className="text-gray-800">{message.content}</p>
-            </div>
-          ))}
-          {loading && (
-            <div className="mr-12">
-              <AIThinkingIndicator aiThinkingStage="Analyzing your request..." />
-            </div>
-          )}
-        </div>
 
-        <div className="flex gap-2">
-          <Input
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            placeholder="Ask about cooking techniques, recipes, or ingredients..."
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-          />
-          <Button 
-            onClick={handleSendMessage}
-            disabled={loading || !userInput.trim()}
-          >
-            Send
-          </Button>
-        </div>
-      </Card>
+      <div className="mb-6 space-y-4">
+        {conversation.map((msg, i) => (
+          <Card key={i} className={`p-4 ${msg.type === 'assistant' ? 'bg-secondary' : 'bg-primary/10'}`}>
+            <p className="font-semibold mb-1">{msg.type === 'assistant' ? '👩‍🍳 Assistant' : '👤 You'}</p>
+            <p>{msg.content}</p>
+          </Card>
+        ))}
+      </div>
+
+      <form onSubmit={sendMessage} className="flex gap-2">
+        <Input
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Ask about recipes, cooking techniques, or ingredients..."
+          disabled={isLoading}
+        />
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? <Loader2 className="animate-spin" /> : 'Send'}
+        </Button>
+      </form>
     </div>
   );
 }
