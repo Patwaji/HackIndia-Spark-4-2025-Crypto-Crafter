@@ -35,9 +35,14 @@ const Navbar = () => {
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            <Link href="/signup">
-              <button className="bg-secondary hover:bg-secondary-dark text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">Sign Up</button>
-            </Link>
+            <div className="flex gap-4">
+              <Link href="/login">
+                <button className="bg-white hover:bg-gray-100 text-primary border-2 border-primary px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">Log In</button>
+              </Link>
+              <Link href="/signup">
+                <button className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">Sign Up</button>
+              </Link>
+            </div>
           </div>
           <div className="flex items-center sm:hidden">
             <button type="button" className="text-gray-500 hover:text-primary focus:outline-none">

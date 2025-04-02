@@ -7,7 +7,8 @@ import Home from "@/pages/Home";
 import MealPlanner from "@/pages/MealPlanner";
 import Features from "@/pages/Features";
 import HowItWorks from "@/pages/HowItWorks";
-import SignUp from './pages/SignUp'; // Added import for SignUp component
+import SignUp from './pages/SignUp';
+import Login from './pages/Login';
 
 function App() {
   return (
@@ -19,7 +20,8 @@ function App() {
           <Route path="/meal-planner" component={MealPlanner} />
           <Route path="/features" component={Features} />
           <Route path="/how-it-works" component={HowItWorks} />
-          <Route path="/signup" component={SignUp} /> {/* Added signup route */}
+          <Route path="/signup" component={SignUp} />
+          <Route path="/login" component={Login} />
           <Route component={NotFound} />
         </Switch>
       </main>
