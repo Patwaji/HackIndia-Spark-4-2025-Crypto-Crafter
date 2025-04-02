@@ -1,4 +1,3 @@
-
 import { useLocation } from 'wouter';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -52,34 +51,6 @@ export default function SignUp() {
   const handleSignUpWithReplit = () => handleAuthWindow("replit");
   const handleSignUpWithGithub = () => handleAuthWindow("github");
   const handleSignUpWithGoogle = () => handleAuthWindow("google");
-    window.addEventListener("message", authComplete);
-    const h = 500;
-    const w = 350;
-    const left = screen.width / 2 - w / 2;
-    const top = screen.height / 2 - h / 2;
-
-    const authWindow = window.open(
-      "https://replit.com/auth_with_repl_site?domain=" + location.host,
-      "_blank",
-      "modal=yes, toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=" +
-        w +
-        ", height=" +
-        h +
-        ", top=" +
-        top +
-        ", left=" +
-        left
-    );
-
-    function authComplete(e: MessageEvent) {
-      if (e.data !== "auth_complete") {
-        return;
-      }
-      window.removeEventListener("message", authComplete);
-      if (authWindow) authWindow.close();
-      setLocation('/meal-planner');
-    }
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -97,7 +68,7 @@ export default function SignUp() {
               <img src="https://replit.com/public/images/logo.svg" alt="Replit" className="w-5 h-5 mr-2" />
               Sign Up with Replit
             </Button>
-            
+
             <Button 
               className="w-full bg-[#24292E] hover:bg-[#2F363D] text-white" 
               onClick={handleSignUpWithGithub}
@@ -107,7 +78,7 @@ export default function SignUp() {
               </svg>
               Sign Up with GitHub
             </Button>
-            
+
             <Button 
               className="w-full bg-white hover:bg-gray-100 text-gray-900 border border-gray-300" 
               onClick={handleSignUpWithGoogle}
