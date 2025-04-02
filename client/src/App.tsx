@@ -10,6 +10,7 @@ import HowItWorks from "@/pages/HowItWorks";
 import SignUp from './pages/SignUp';
 import Login from './pages/Login';
 import Feedback from './pages/Feedback';
+import AIRecipeGenerator from '@/pages/AIRecipeGenerator'; // Added import for the new component
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="/signup" component={SignUp} />
           <Route path="/login" component={Login} />
           <Route path="/feedback" component={Feedback} />
+          <Route path="/ai-recipe-generator" component={AIRecipeGenerator} /> {/* Added route for AI Recipe Generator */}
           <Route component={NotFound} />
         </Switch>
       </main>

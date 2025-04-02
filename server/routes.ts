@@ -10,7 +10,19 @@ import {
 import { generateMealPlan } from "./meal-generator";
 import { getNutritionInfo } from "./nutrition-api";
 
+import { generateRecipeWithAI } from './recipe-generator';
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Recipe generation endpoint
+  app.post('/api/generate-recipe', async (req, res) => {
+    try {
+      const recipe = await generateRecipeWithAI(req.body);
+      res.json(recipe);
+    } catch (error) {
+      console.error('Recipe generation error:', error);
+      res.status(500).json({ error: 'Failed to generate recipe' });
+    }
+  });
   // API endpoint to generate a meal plan
   app.post('/api/meal-plan', async (req, res) => {
     try {
