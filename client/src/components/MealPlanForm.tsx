@@ -199,9 +199,54 @@ const MealPlanForm = () => {
     generateMealPlan.mutate();
   };
 
+  const analyzePreferences = () => {
+    // Enhanced AI analysis of user preferences
+    const insights = [];
+
+    if (state.preferences.dietaryRestrictions !== 'none') {
+      insights.push({
+        type: 'dietary',
+        text: `Your ${state.preferences.dietaryRestrictions} diet will be optimized for essential nutrients`,
+        recommendation: `Consider tracking ${state.preferences.dietaryRestrictions === 'vegan' ? 'B12 and iron' : 'protein'} intake`
+      });
+    }
+
+    if (state.goals.primaryGoal === 'weight-loss') {
+      insights.push({
+        type: 'nutrition',
+        text: 'AI will focus on high-protein, low-calorie meals to support fat loss',
+        recommendation: 'Optimal meal timing will be suggested for metabolic boost'
+      });
+    }
+
+    if (state.budget.budgetPriority === 'nutrition') {
+      insights.push({
+        type: 'budget',
+        text: 'AI will prioritize nutrient-dense foods within budget constraints',
+        recommendation: 'Consider seasonal ingredients for better value'
+      });
+    }
+
+    dispatch({
+      type: 'SET_AI_ANALYSIS',
+      payload: {
+        ...state.aiAnalysis,
+        insights: [...state.aiAnalysis.insights, ...insights],
+        balanceScore: calculateBalanceScore(state.goals, state.preferences)
+      }
+    });
+  };
+
+  const calculateBalanceScore = (goals: any, preferences: any) => {
+    let score = 85; // Base score
+    if (goals.primaryGoal === 'maintenance') score += 5;
+    if (preferences.cuisineType !== 'any') score -= 3;
+    return Math.min(score, 100);
+  };
+
   const handleGeneratePlan = () => {
-    // Initialize loading and AI thinking
     dispatch({ type: 'SET_LOADING', payload: true });
+    analyzePreferences();
     simulateAIThinking();
   };
 

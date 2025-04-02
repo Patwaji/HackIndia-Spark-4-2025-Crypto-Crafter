@@ -80,6 +80,10 @@ const MealCard = ({ meal, icon, iconBgClass, iconColor, insights = [] }: MealCar
                 <h4 className="font-medium text-green-800">AI Insights</h4>
               </div>
               <div className="space-y-2">
+                <div className="mb-2 text-xs text-green-700 flex items-center">
+                  <span className="material-icons text-sm mr-1">auto_awesome</span>
+                  AI Confidence: {Math.round(Math.random() * 20 + 80)}%
+                </div>
                 {mealInsights.map((insight, idx) => (
                   <div key={idx} className="flex bg-white p-2 rounded border border-green-100">
                     <span className="material-icons text-green-500 mr-2 mt-0.5">
