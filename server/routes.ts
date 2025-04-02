@@ -9,47 +9,45 @@ import {
 } from "../shared/schema";
 import { generateMealPlan } from "./meal-generator";
 import { getNutritionInfo } from "./nutrition-api";
+import { OpenAI } from "openai";
 
-import { generateRecipeWithAI } from './recipe-generator';
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || 'your-api-key'
+});
 
-
-import { AI_SYSTEM_NAME } from './ai-meal-service';
+const SYSTEM_PROMPT = `You are an experienced cooking assistant with deep knowledge of various cuisines, ingredients, and cooking techniques. You provide helpful, clear, and concise advice about cooking. Keep responses friendly and practical.`;
 
 interface CookingAssistantRequest {
   message: string;
 }
 
 async function generateAssistantResponse(message: string): Promise<string> {
-  // Basic cooking assistant logic - can be enhanced later
-  if (message.toLowerCase().includes('recipe')) {
-    return `${AI_SYSTEM_NAME}: I can help you with recipes! What kind of dish would you like to make?`;
-  } else if (message.toLowerCase().includes('ingredient')) {
-    return `${AI_SYSTEM_NAME}: I can provide information about ingredients and suggest substitutions. What ingredient would you like to know more about?`;
-  } else if (message.toLowerCase().includes('technique') || message.toLowerCase().includes('how to')) {
-    return `${AI_SYSTEM_NAME}: I'll guide you through the cooking technique. Could you specify what you'd like to learn?`;
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: message }
+      ],
+      temperature: 0.7,
+      max_tokens: 500
+    });
+
+    return completion.choices[0].message.content || "I'm sorry, I couldn't process that request.";
+  } catch (error) {
+    console.error('OpenAI API error:', error);
+    return "Sorry, I'm having trouble processing your request right now.";
   }
-  return `${AI_SYSTEM_NAME}: I'm here to help with cooking! You can ask me about recipes, ingredients, or cooking techniques.`;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Recipe generation endpoint
-  app.post('/api/generate-recipe', async (req, res) => {
-    try {
-      const recipe = await generateRecipeWithAI(req.body);
-      res.json(recipe);
-    } catch (error) {
-      console.error('Recipe generation error:', error);
-      res.status(500).json({ error: 'Failed to generate recipe' });
-    }
-  });
   // API endpoint to generate a meal plan
   app.post('/api/meal-plan', async (req, res) => {
     try {
       console.log('Received meal plan generation request');
-      
-      // Validate request body
+
       const result = mealPlanRequest.safeParse(req.body);
-      
+
       if (!result.success) {
         console.error('Invalid meal plan request:', result.error.errors);
         return res.status(400).json({ 
@@ -57,16 +55,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: result.error.errors 
         });
       }
-      
+
       const mealPlanData: MealPlanRequest = result.data;
       console.log('Starting AI-powered meal plan generation');
-      
+
       try {
-        // Generate the meal plan using our algorithm
         const mealPlan = await generateMealPlan(mealPlanData);
         console.log('Meal plan generated successfully');
-        
-        // Return the generated meal plan
         return res.json(mealPlan);
       } catch (mealPlanError) {
         console.error('Error in meal plan generation process:', mealPlanError);
@@ -84,18 +79,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API endpoint to get nutrition info for a specific food
+  // AI Cooking Assistant endpoint
+  app.post('/api/cooking-assistant', async (req, res) => {
+    try {
+      const { message } = req.body as CookingAssistantRequest;
+      if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
+      }
+
+      const response = await generateAssistantResponse(message);
+      res.json({ response });
+    } catch (error) {
+      console.error('Error in cooking assistant:', error);
+      res.status(500).json({ error: 'Failed to process request' });
+    }
+  });
+
+  // Get nutrition info
   app.get('/api/nutrition/:food', async (req, res) => {
     try {
       const food = req.params.food;
-      
+
       if (!food) {
         return res.status(400).json({ message: "Food parameter is required" });
       }
-      
-      // Get nutrition information from external API
+
       const nutritionInfo = await getNutritionInfo(food);
-      
       return res.json(nutritionInfo);
     } catch (error) {
       console.error('Error fetching nutrition info:', error);
@@ -194,24 +203,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
-
-  // AI Cooking Assistant endpoint
-  app.post('/api/cooking-assistant', async (req, res) => {
-    try {
-      const { message } = req.body as CookingAssistantRequest;
-      if (!message) {
-        return res.status(400).json({ error: 'Message is required' });
-      }
-
-      const response = await generateAssistantResponse(message);
-      res.json({ response });
-    } catch (error) {
-      console.error('Error in cooking assistant:', error);
-      res.status(500).json({ error: 'Failed to process request' });
-    }
   });
 
-  });
 
   // Delete a meal plan
   app.delete('/api/meal-plans/:id', async (req, res) => {
@@ -239,6 +232,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-
   return httpServer;
 }
