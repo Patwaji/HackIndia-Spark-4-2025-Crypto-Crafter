@@ -12,6 +12,25 @@ import { getNutritionInfo } from "./nutrition-api";
 
 import { generateRecipeWithAI } from './recipe-generator';
 
+
+import { AI_SYSTEM_NAME } from './ai-meal-service';
+
+interface CookingAssistantRequest {
+  message: string;
+}
+
+async function generateAssistantResponse(message: string): Promise<string> {
+  // Basic cooking assistant logic - can be enhanced later
+  if (message.toLowerCase().includes('recipe')) {
+    return `${AI_SYSTEM_NAME}: I can help you with recipes! What kind of dish would you like to make?`;
+  } else if (message.toLowerCase().includes('ingredient')) {
+    return `${AI_SYSTEM_NAME}: I can provide information about ingredients and suggest substitutions. What ingredient would you like to know more about?`;
+  } else if (message.toLowerCase().includes('technique') || message.toLowerCase().includes('how to')) {
+    return `${AI_SYSTEM_NAME}: I'll guide you through the cooking technique. Could you specify what you'd like to learn?`;
+  }
+  return `${AI_SYSTEM_NAME}: I'm here to help with cooking! You can ask me about recipes, ingredients, or cooking techniques.`;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Recipe generation endpoint
   app.post('/api/generate-recipe', async (req, res) => {
@@ -175,6 +194,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
+
+  // AI Cooking Assistant endpoint
+  app.post('/api/cooking-assistant', async (req, res) => {
+    try {
+      const { message } = req.body as CookingAssistantRequest;
+      if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
+      }
+
+      const response = await generateAssistantResponse(message);
+      res.json({ response });
+    } catch (error) {
+      console.error('Error in cooking assistant:', error);
+      res.status(500).json({ error: 'Failed to process request' });
+    }
+  });
+
   });
 
   // Delete a meal plan
