@@ -31,9 +31,6 @@ const Navbar = () => {
                 <Link href="/features">
                   <a className={`${isActive('/features') ? 'text-primary' : 'text-neutral-dark hover:text-primary'} px-3 py-2 rounded-md text-sm font-medium`}>Features</a>
                 </Link>
-                <Link href="/ai-cooking-assistant">
-                  <a className={`${isActive('/ai-cooking-assistant') ? 'text-primary' : 'text-neutral-dark hover:text-primary'} px-3 py-2 rounded-md text-sm font-medium`}>AI Cooking Assistant</a>
-                </Link>
                 <Link href="/feedback">
                   <a className={`${isActive('/feedback') ? 'text-primary' : 'text-neutral-dark hover:text-primary'} px-3 py-2 rounded-md text-sm font-medium`}>Feedback</a>
                 </Link>

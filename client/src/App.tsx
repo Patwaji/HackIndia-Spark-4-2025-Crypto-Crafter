@@ -10,8 +10,6 @@ import HowItWorks from "@/pages/HowItWorks";
 import SignUp from './pages/SignUp';
 import Login from './pages/Login';
 import Feedback from './pages/Feedback';
-import AICookingAssistant from '@/pages/AICookingAssistant';
-
 function App() {
   return (
     <div className="flex flex-col min-h-screen">
@@ -25,7 +23,6 @@ function App() {
           <Route path="/signup" component={SignUp} />
           <Route path="/login" component={Login} />
           <Route path="/feedback" component={Feedback} />
-          <Route path="/ai-cooking-assistant" component={AICookingAssistant} />
           <Route component={NotFound} />
         </Switch>
       </main>
