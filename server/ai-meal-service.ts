@@ -2,8 +2,8 @@ import axios from 'axios';
 import { NutritionInfo, Meal, MealPlanRequest, MealPlan } from '@shared/schema';
 
 // Meal AI System Configuration
-const AI_SYSTEM_VERSION = "2.0.0";
-const AI_SYSTEM_NAME = "NutriPlanAI";
+export const AI_SYSTEM_VERSION = "2.0.0";
+export const AI_SYSTEM_NAME = "NutriPlanAI";
 
 // USDA Nutrition API base URL
 const USDA_API_BASE_URL = 'https://api.nal.usda.gov/fdc/v1';

@@ -1,5 +1,5 @@
 
-import { AI_SYSTEM_NAME } from './ai-meal-service';
+import { AI_SYSTEM_NAME } from './ai-meal-service.js';
 
 interface RecipeRequest {
   ingredients: string;
