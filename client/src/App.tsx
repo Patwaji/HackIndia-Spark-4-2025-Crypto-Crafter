@@ -9,6 +9,7 @@ import Features from "@/pages/Features";
 import HowItWorks from "@/pages/HowItWorks";
 import SignUp from './pages/SignUp';
 import Login from './pages/Login';
+import Feedback from './pages/Feedback';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/how-it-works" component={HowItWorks} />
           <Route path="/signup" component={SignUp} />
           <Route path="/login" component={Login} />
+          <Route path="/feedback" component={Feedback} />
           <Route component={NotFound} />
         </Switch>
       </main>
