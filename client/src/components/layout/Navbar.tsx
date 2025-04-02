@@ -35,7 +35,9 @@ const Navbar = () => {
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            <button className="bg-secondary hover:bg-secondary-dark text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">Sign Up</button>
+            <Link href="/signup">
+              <button className="bg-secondary hover:bg-secondary-dark text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">Sign Up</button>
+            </Link>
           </div>
           <div className="flex items-center sm:hidden">
             <button type="button" className="text-gray-500 hover:text-primary focus:outline-none">
