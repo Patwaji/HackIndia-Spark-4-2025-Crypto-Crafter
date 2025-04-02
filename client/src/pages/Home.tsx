@@ -19,13 +19,13 @@ const Home = () => {
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link href="/meal-planner">
-                <a className="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-md font-medium text-lg transition-colors duration-200 flex items-center justify-center gap-2">
+                <a className="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-md font-medium text-lg transition-colors duration-200 flex items-center justify-center gap-2 w-full sm:w-auto">
                   <span className="material-icons">smart_toy</span>
                   Try AI Meal Planner
                 </a>
               </Link>
               <Link href="/how-it-works">
-                <a className="border border-gray-300 hover:border-primary text-gray-800 hover:text-primary px-8 py-3 rounded-md font-medium text-lg transition-colors duration-200">
+                <a className="border border-gray-300 hover:border-primary text-gray-800 hover:text-primary px-8 py-3 rounded-md font-medium text-lg transition-colors duration-200 flex items-center justify-center w-full sm:w-auto">
                   See AI in Action
                 </a>
               </Link>
