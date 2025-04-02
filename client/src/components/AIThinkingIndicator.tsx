@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 
@@ -58,7 +59,6 @@ const AIThinkingIndicator: React.FC<AIThinkingIndicatorProps> = ({ stage, progre
   );
 };
 
-
 const EnhancedAIIndicator: React.FC<{ aiThinkingStage: string }> = ({ aiThinkingStage }) => {
   return (
     <div className="text-center p-8">
@@ -84,3 +84,4 @@ const EnhancedAIIndicator: React.FC<{ aiThinkingStage: string }> = ({ aiThinking
 };
 
 export { AIThinkingIndicator, EnhancedAIIndicator };
+export default AIThinkingIndicator;
