@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import VideoGenerator from "@/components/VideoGenerator";
 import { 
   ChevronLeft, 
   Clock, 
@@ -499,6 +500,36 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* AI Video Recipe Generator */}
+        <div className="mt-8 mb-8">
+          <VideoGenerator 
+            recipe={{
+              name: `${mealPlan.breakfast?.name || 'Daily'} Meal Plan`,
+              instructions: [
+                ...(mealPlan.breakfast?.instructions || []),
+                ...(mealPlan.lunch?.instructions || []),
+                ...(mealPlan.snack?.instructions || []),
+                ...(mealPlan.dinner?.instructions || [])
+              ],
+              ingredients: [
+                ...(mealPlan.breakfast?.ingredients || []),
+                ...(mealPlan.lunch?.ingredients || []),
+                ...(mealPlan.snack?.ingredients || []),
+                ...(mealPlan.dinner?.ingredients || [])
+              ],
+              cuisineType: mealPlan.breakfast?.cuisineType || 'Indian',
+              prepTime: '30 minutes',
+              difficulty: 'medium'
+            }}
+            onVideoGenerated={(video) => {
+              toast({
+                title: "Video Generated! 🎬",
+                description: "Your cooking video is ready to watch!",
+              });
+            }}
+          />
         </div>
 
         {/* AI Recommendations */}
