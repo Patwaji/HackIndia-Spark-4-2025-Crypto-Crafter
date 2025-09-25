@@ -84,13 +84,13 @@ export default function Hero() {
                   <div key={i} className="w-8 h-8 rounded-full bg-gradient-primary border-2 border-background"></div>
                 ))}
               </div>
-              <span>Join our beta community</span>
+              <span>Try our AI meal planner</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="bg-primary/20 px-3 py-1 rounded-full text-sm">
-                Beta Release
+                New Launch
               </div>
-              <span className="text-sm text-muted-foreground">Try our AI meal planner</span>
+              <span className="text-sm text-muted-foreground">AI-powered meal planning</span>
             </div>
           </div>
         </div>

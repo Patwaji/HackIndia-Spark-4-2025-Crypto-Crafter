@@ -7,10 +7,10 @@ export default function Testimonials() {
       <div className="container">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Community Reviews
+            Why Choose AI Meal Planning?
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Join our growing community of users transforming their eating habits
+            Experience the future of personalized nutrition with our innovative AI technology
           </p>
         </div>
 
@@ -19,11 +19,11 @@ export default function Testimonials() {
             <CardContent className="p-8 text-center">
               <div className="mb-4">
                 <Users className="h-12 w-12 text-primary mx-auto mb-2" />
-                <h3 className="text-2xl font-bold text-foreground">Beta</h3>
-                <p className="text-muted-foreground">Community</p>
+                <h3 className="text-2xl font-bold text-foreground">Fresh Launch</h3>
+                <p className="text-muted-foreground">Brand New Platform</p>
               </div>
               <p className="text-sm text-muted-foreground">
-                Join our beta community and help shape the future of AI meal planning
+                Be among the first to experience AI-powered meal planning tailored for Indian cuisine
               </p>
             </CardContent>
           </Card>
@@ -32,11 +32,11 @@ export default function Testimonials() {
             <CardContent className="p-8 text-center">
               <div className="mb-4">
                 <Heart className="h-12 w-12 text-primary mx-auto mb-2" />
-                <h3 className="text-2xl font-bold text-foreground">Real Reviews</h3>
-                <p className="text-muted-foreground">Coming Soon</p>
+                <h3 className="text-2xl font-bold text-foreground">Your Feedback Matters</h3>
+                <p className="text-muted-foreground">Shape Our Future</p>
               </div>
               <p className="text-sm text-muted-foreground">
-                We're collecting authentic feedback from our users to share genuine experiences
+                Help us improve by sharing your experience and suggestions as we grow together
               </p>
             </CardContent>
           </Card>
@@ -45,11 +45,11 @@ export default function Testimonials() {
             <CardContent className="p-8 text-center">
               <div className="mb-4">
                 <MessageCircle className="h-12 w-12 text-primary mx-auto mb-2" />
-                <h3 className="text-2xl font-bold text-foreground">Share Feedback</h3>
-                <p className="text-muted-foreground">Help Us Improve</p>
+                <h3 className="text-2xl font-bold text-foreground">Early Access</h3>
+                <p className="text-muted-foreground">Pioneer User Benefits</p>
               </div>
               <p className="text-sm text-muted-foreground">
-                Your feedback helps us create better AI-powered meal planning experiences
+                Get free access to all features and help us perfect the AI meal planning experience
               </p>
             </CardContent>
           </Card>
@@ -57,7 +57,7 @@ export default function Testimonials() {
 
         <div className="text-center mt-12">
           <p className="text-muted-foreground">
-            Be among the first to try our AI meal planner and share your experience!
+            Ready to revolutionize your meal planning with AI? Let's get started!
           </p>
         </div>
       </div>
