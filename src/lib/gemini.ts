@@ -80,7 +80,7 @@ STRICT REQUIREMENTS (MUST FOLLOW):
 
 HEALTH GOALS (MANDATORY):
 - Primary goal: ${goals.primaryGoal.replace('_', ' ')}
-- Daily calorie target: ${goals.calorieTarget} calories (stay within ±50 calories)
+- Daily calorie target: EXACTLY ${goals.calorieTarget} calories (CRITICAL: Must be within ${goals.calorieTarget - 50} to ${goals.calorieTarget + 50} calories - NO EXCEPTIONS)
 - Health conditions: ${goals.healthConditions.join(', ') || 'None'} ${goals.healthConditions.length > 0 ? '(Adjust recipes accordingly)' : ''}
 
 BUDGET (STRICT CONSTRAINT):
@@ -91,7 +91,7 @@ CRITICAL REQUIREMENTS:
 1. CUISINE COMPLIANCE: If user selected "${preferences.cuisineType}" cuisine, ALL meals must be from this cuisine only
 2. DIETARY RESTRICTIONS: Absolutely NO ${preferences.dietaryRestrictions.join(', ')} ingredients or preparations
 3. DISLIKED INGREDIENTS: Never include: ${preferences.dislikedIngredients || 'None specified'}
-4. CALORIE TARGET: Total calories must be ${goals.calorieTarget} ± 50 calories
+4. CALORIE TARGET: ***CRITICAL*** Total daily calories MUST be between ${goals.calorieTarget - 50} and ${goals.calorieTarget + 50} calories. Calculate each meal's calories carefully and ensure the sum equals ${goals.calorieTarget} calories (±50). DO NOT create low-calorie meal plans.
 5. BUDGET: Total cost must not exceed ₹${budget.dailyBudget}
 
 INDIAN MARKET PRICING (Use these exact ranges):
@@ -103,11 +103,12 @@ INDIAN MARKET PRICING (Use these exact ranges):
 - Spices: ₹100-300 per kg
 - Typical meal cost: ₹30-120
 
-MEAL STRUCTURE:
-- Breakfast: 25% of daily calories
-- Lunch: 35% of daily calories  
-- Snack: 15% of daily calories
-- Dinner: 25% of daily calories
+MEAL STRUCTURE (EXACT CALORIE DISTRIBUTION):
+- Breakfast: ${Math.round(goals.calorieTarget * 0.25)} calories (25% of ${goals.calorieTarget})
+- Lunch: ${Math.round(goals.calorieTarget * 0.35)} calories (35% of ${goals.calorieTarget})  
+- Snack: ${Math.round(goals.calorieTarget * 0.15)} calories (15% of ${goals.calorieTarget})
+- Dinner: ${Math.round(goals.calorieTarget * 0.25)} calories (25% of ${goals.calorieTarget})
+TOTAL MUST EQUAL: ${goals.calorieTarget} calories
 
 Create meals that are:
 - Authentic to the selected cuisine
@@ -124,6 +125,12 @@ Create a meal plan with breakfast, lunch, snack, and dinner. Each meal must incl
 - Cost estimation in Indian Rupees (₹)
 - Preparation time
 - Indian cooking tips and techniques
+
+CRITICAL VALIDATION BEFORE RESPONDING: 
+1. Calculate breakfast + lunch + snack + dinner calories = MUST be between ${goals.calorieTarget - 50} and ${goals.calorieTarget + 50} calories
+2. If total calories are below ${goals.calorieTarget - 50}, increase portions or add healthy ingredients
+3. If total calories exceed ${goals.calorieTarget + 50}, reduce portions
+4. Double-check NO restricted ingredients (${preferences.dietaryRestrictions.join(', ') || 'None'}) are included
 
 Return ONLY valid JSON in this exact format:
 {
@@ -170,10 +177,11 @@ Return ONLY valid JSON in this exact format:
       console.warn(`Generated meal plan cost (₹${totalCost}) exceeds budget (₹${budget.dailyBudget})`);
     }
     
-    // Calorie validation
+    // Calorie validation - stricter enforcement
     const calorieVariance = Math.abs(totalCalories - goals.calorieTarget);
-    if (calorieVariance > 100) { // Allow 100 calorie variance
-      console.warn(`Generated meal plan calories (${totalCalories}) significantly differ from target (${goals.calorieTarget})`);
+    if (calorieVariance > 50) { // Only allow 50 calorie variance
+      console.warn(`Generated meal plan calories (${totalCalories}) differ from target (${goals.calorieTarget}) by ${calorieVariance} calories`);
+      // Could regenerate here if needed
     }
     
     // Dietary restriction validation
