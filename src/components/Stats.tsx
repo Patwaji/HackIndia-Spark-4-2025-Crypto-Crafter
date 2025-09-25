@@ -3,27 +3,27 @@ import { Users, Utensils, DollarSign, Clock } from "lucide-react";
 const stats = [
   {
     icon: Users,
-    number: "50,000+",
-    label: "Happy Users",
-    description: "People trust our AI for their daily nutrition",
+    number: "New",
+    label: "Fresh Platform",
+    description: "Just launched - be among the first users",
   },
   {
     icon: Utensils,
-    number: "2M+",
-    label: "Meals Generated",
-    description: "Personalized recipes created and enjoyed",
+    number: "AI-Powered",
+    label: "Smart Generation",
+    description: "Advanced AI creates personalized meal plans",
   },
   {
     icon: DollarSign,
-    number: "₹15,000",
-    label: "Average Savings",
-    description: "Monthly grocery savings per family",
+    number: "Budget-Friendly",
+    label: "Cost Effective",
+    description: "Designed to work within your budget constraints",
   },
   {
     icon: Clock,
-    number: "4.5 hours",
-    label: "Time Saved Weekly",
-    description: "Less time planning, more time enjoying",
+    number: "Quick Setup",
+    label: "Save Time",
+    description: "Get meal plans in minutes, not hours",
   },
 ];
 
@@ -33,13 +33,13 @@ export default function Stats() {
       <div className="container">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Trusted by Thousands of 
+            Why Choose Our 
             <span className="bg-gradient-hero bg-clip-text text-transparent block sm:inline sm:ml-2">
-              Health-Conscious Indians
+              AI Meal Planner?
             </span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Join a growing community of people who've revolutionized their meal planning with AI
+            Experience the benefits of AI-powered meal planning designed specifically for Indian cuisine
           </p>
         </div>
 
