@@ -1,9 +1,14 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { safeNumber } from './utils';
 
-// Initialize Gemini AI
-export const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
+// Initialize Gemini AI with secure environment variable
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
+if (!apiKey) {
+  throw new Error('Gemini API key not found. Please add VITE_GEMINI_API_KEY to your .env file.');
+}
+
+export const genAI = new GoogleGenerativeAI(apiKey);
 export const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 export interface MealPreferences {
@@ -68,31 +73,47 @@ export async function generateMealPlan(
 ): Promise<MealPlan> {
   const prompt = `You are a professional nutritionist and meal planning expert specializing in Indian cuisine and Indian market pricing. Create a complete daily meal plan based on these requirements:
 
-PREFERENCES:
-- Cuisine: ${preferences.cuisineType}
-- Dietary restrictions: ${preferences.dietaryRestrictions.join(', ') || 'None'}
-- Disliked ingredients: ${preferences.dislikedIngredients || 'None'}
+STRICT REQUIREMENTS (MUST FOLLOW):
+- Cuisine: ${preferences.cuisineType} ${preferences.cuisineType !== 'Any' ? '(ONLY this cuisine type - no mixing with other cuisines)' : ''}
+- Dietary restrictions: ${preferences.dietaryRestrictions.join(', ') || 'None'} ${preferences.dietaryRestrictions.length > 0 ? '(STRICTLY avoid these - no exceptions)' : ''}
+- Disliked ingredients: ${preferences.dislikedIngredients || 'None'} ${preferences.dislikedIngredients ? '(COMPLETELY avoid these ingredients)' : ''}
 
-HEALTH GOALS:
+HEALTH GOALS (MANDATORY):
 - Primary goal: ${goals.primaryGoal.replace('_', ' ')}
-- Daily calorie target: ${goals.calorieTarget} calories
-- Health conditions: ${goals.healthConditions.join(', ') || 'None'}
+- Daily calorie target: ${goals.calorieTarget} calories (stay within ±50 calories)
+- Health conditions: ${goals.healthConditions.join(', ') || 'None'} ${goals.healthConditions.length > 0 ? '(Adjust recipes accordingly)' : ''}
 
-BUDGET (Indian Rupees):
-- Daily budget: ₹${budget.dailyBudget}
+BUDGET (STRICT CONSTRAINT):
+- Daily budget: ₹${budget.dailyBudget} (DO NOT exceed this amount)
 - Budget priority: ${budget.budgetPriority.replace('_', ' ')}
 
-IMPORTANT PRICING GUIDELINES FOR INDIAN MARKET:
-- Use Indian Rupee (₹) for all costs
-- Base pricing on average Indian grocery costs:
-  * Rice/wheat: ₹40-60 per kg
-  * Dal/pulses: ₹80-120 per kg  
-  * Vegetables: ₹20-80 per kg
-  * Milk: ₹50-60 per liter
-  * Cooking oil: ₹120-160 per liter
-  * Spices: ₹100-300 per kg
-- A typical Indian meal should cost between ₹30-120
-- Consider regional Indian ingredients and cooking methods
+CRITICAL REQUIREMENTS:
+1. CUISINE COMPLIANCE: If user selected "${preferences.cuisineType}" cuisine, ALL meals must be from this cuisine only
+2. DIETARY RESTRICTIONS: Absolutely NO ${preferences.dietaryRestrictions.join(', ')} ingredients or preparations
+3. DISLIKED INGREDIENTS: Never include: ${preferences.dislikedIngredients || 'None specified'}
+4. CALORIE TARGET: Total calories must be ${goals.calorieTarget} ± 50 calories
+5. BUDGET: Total cost must not exceed ₹${budget.dailyBudget}
+
+INDIAN MARKET PRICING (Use these exact ranges):
+- Rice/wheat: ₹40-60 per kg
+- Dal/pulses: ₹80-120 per kg  
+- Vegetables: ₹20-80 per kg
+- Milk: ₹50-60 per liter
+- Cooking oil: ₹120-160 per liter
+- Spices: ₹100-300 per kg
+- Typical meal cost: ₹30-120
+
+MEAL STRUCTURE:
+- Breakfast: 25% of daily calories
+- Lunch: 35% of daily calories  
+- Snack: 15% of daily calories
+- Dinner: 25% of daily calories
+
+Create meals that are:
+- Authentic to the selected cuisine
+- Nutritionally balanced for the health goal
+- Within budget constraints
+- Free from restricted/disliked ingredients
 - If budget is below ₹200/day, focus on dal-rice, seasonal vegetables, and affordable proteins
 
 Create a meal plan with breakfast, lunch, snack, and dinner. Each meal must include:
@@ -140,9 +161,42 @@ Return ONLY valid JSON in this exact format:
     
     const mealPlan = JSON.parse(jsonMatch[0]);
     
-    // Validate the meal plan has reasonable costs for Indian market
-    if (mealPlan.totalCost && mealPlan.totalCost < 100) {
-      console.warn('Generated meal plan cost seems too low for Indian market');
+    // Validate the meal plan follows user preferences
+    const totalCost = mealPlan.totalCost || 0;
+    const totalCalories = mealPlan.totalNutrition?.calories || 0;
+    
+    // Budget validation
+    if (totalCost > budget.dailyBudget * 1.1) { // Allow 10% tolerance
+      console.warn(`Generated meal plan cost (₹${totalCost}) exceeds budget (₹${budget.dailyBudget})`);
+    }
+    
+    // Calorie validation
+    const calorieVariance = Math.abs(totalCalories - goals.calorieTarget);
+    if (calorieVariance > 100) { // Allow 100 calorie variance
+      console.warn(`Generated meal plan calories (${totalCalories}) significantly differ from target (${goals.calorieTarget})`);
+    }
+    
+    // Dietary restriction validation
+    if (preferences.dietaryRestrictions.length > 0) {
+      const allMeals = [mealPlan.breakfast, mealPlan.lunch, mealPlan.snack, mealPlan.dinner];
+      for (const meal of allMeals) {
+        if (meal && meal.ingredients) {
+          const mealText = JSON.stringify(meal).toLowerCase();
+          for (const restriction of preferences.dietaryRestrictions) {
+            if (restriction.toLowerCase() !== 'none') {
+              // Check for common restriction violations
+              if (restriction.toLowerCase().includes('vegetarian') && 
+                  (mealText.includes('chicken') || mealText.includes('mutton') || mealText.includes('fish') || mealText.includes('egg'))) {
+                console.warn(`Meal plan may violate ${restriction} restriction`);
+              }
+              if (restriction.toLowerCase().includes('vegan') && 
+                  (mealText.includes('milk') || mealText.includes('cheese') || mealText.includes('butter') || mealText.includes('ghee'))) {
+                console.warn(`Meal plan may violate ${restriction} restriction`);
+              }
+            }
+          }
+        }
+      }
     }
     
     return mealPlan;

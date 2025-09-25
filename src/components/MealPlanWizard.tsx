@@ -54,6 +54,15 @@ export default function MealPlanWizard() {
   const progress = (currentStep / totalSteps) * 100;
 
   const handleNext = () => {
+    if (!canProceedToNext()) {
+      toast({
+        variant: "destructive",
+        title: "Please complete this step",
+        description: "Fill in all required fields before proceeding.",
+      });
+      return;
+    }
+    
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -93,6 +102,23 @@ export default function MealPlanWizard() {
     }
   };
 
+  const validateStep = (step: number) => {
+    switch (step) {
+      case 1:
+        return preferences.cuisineType !== "";
+      case 2:
+        return goals.calorieTarget > 0;
+      case 3:
+        return budget.dailyBudget >= 150;
+      default:
+        return true;
+    }
+  };
+
+  const canProceedToNext = () => {
+    return validateStep(currentStep);
+  };
+
   const handleGeneratePlan = async () => {
     // Validate minimum budget
     if (budget.dailyBudget < 150) {
@@ -113,10 +139,11 @@ export default function MealPlanWizard() {
         description: "Your personalized meal plan is ready.",
       });
     } catch (error) {
+      console.error('Meal plan generation error:', error);
       toast({
         variant: "destructive",
         title: "Generation Failed",
-        description: "Please check your API key and try again.",
+        description: error.message || "Unable to generate meal plan. Please check your connection and try again.",
       });
     } finally {
       setIsGenerating(false);
@@ -381,6 +408,7 @@ export default function MealPlanWizard() {
                 <Button 
                   variant="default" 
                   onClick={handleNext}
+                  disabled={!canProceedToNext()}
                   className="gap-2"
                 >
                   Next

@@ -4,6 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   ChevronLeft, 
   Clock, 
@@ -16,13 +19,19 @@ import {
   Download,
   Save,
   BookOpen,
-  Loader
+  Loader,
+  Calendar,
+  ShoppingCart,
+  Star
 } from "lucide-react";
 import type { MealPlan, Meal } from "@/lib/gemini";
 import { generateRecipe } from "@/lib/gemini";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, safeNumber } from "@/lib/utils";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { saveMealPlan, generateShoppingList, exportToCalendar } from "@/lib/mealPlanService";
+import AuthModal from "./AuthModal";
 
 interface MealPlanDisplayProps {
   mealPlan: MealPlan;
@@ -32,7 +41,17 @@ interface MealPlanDisplayProps {
 export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayProps) {
   const [generatingRecipe, setGeneratingRecipe] = useState<string | null>(null);
   const [generatedRecipes, setGeneratedRecipes] = useState<Record<string, any>>({});
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveData, setSaveData] = useState({
+    name: '',
+    description: '',
+    tags: ''
+  });
+  
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const meals = [
     { key: 'breakfast', meal: mealPlan.breakfast, icon: '🌅', color: 'text-yellow-600' },
@@ -62,6 +81,109 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
     }
   };
 
+  const handleSaveMealPlan = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    if (!saveData.name.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Missing Name",
+        description: "Please enter a name for your meal plan."
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const tags = saveData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      await saveMealPlan(
+        user.uid,
+        mealPlan,
+        saveData.name,
+        saveData.description,
+        tags
+      );
+      
+      toast({
+        title: "Meal Plan Saved!",
+        description: "Your meal plan has been saved successfully."
+      });
+      
+      setShowSaveDialog(false);
+      setSaveData({ name: '', description: '', tags: '' });
+    } catch (error) {
+      console.error('Save error:', error);
+      toast({
+        variant: "destructive",
+        title: "Save Failed",
+        description: "Failed to save meal plan. Please try again."
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExportShoppingList = () => {
+    try {
+      const shoppingList = generateShoppingList(mealPlan);
+      const csvContent = ['Item,Category'].concat(
+        shoppingList.map(item => `"${item.ingredient}","${item.category}"`)
+      ).join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'nutriplan-shopping-list.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Shopping List Downloaded!",
+        description: "Your shopping list has been exported as CSV."
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: "Failed to export shopping list."
+      });
+    }
+  };
+
+  const handleExportCalendar = () => {
+    try {
+      const icalContent = exportToCalendar(mealPlan, 'NutriPlan Meal Schedule');
+      const blob = new Blob([icalContent], { type: 'text/calendar' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'nutriplan-meal-schedule.ics';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Calendar Exported!",
+        description: "Your meal schedule has been exported for calendar import."
+      });
+    } catch (error) {
+      console.error('Calendar export error:', error);
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: "Failed to export calendar."
+      });
+    }
+  };
+
   const macroPercentages = {
     protein: Math.round((safeNumber(mealPlan.totalNutrition.protein) * 4) / Math.max(safeNumber(mealPlan.totalNutrition.calories), 1) * 100),
     carbs: Math.round((safeNumber(mealPlan.totalNutrition.carbs) * 4) / Math.max(safeNumber(mealPlan.totalNutrition.calories), 1) * 100),
@@ -69,7 +191,8 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
   };
 
   return (
-    <section className="py-20 bg-gradient-subtle min-h-screen">
+    <>
+      <section className="py-20 bg-gradient-subtle min-h-screen">
       <div className="container max-w-6xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -79,13 +202,17 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
           </Button>
           
           <div className="flex gap-3">
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" onClick={() => setShowSaveDialog(true)} className="gap-2">
               <Save className="h-4 w-4" />
               Save Plan
             </Button>
-            <Button variant="default" className="gap-2">
-              <Download className="h-4 w-4" />
-              Export PDF
+            <Button variant="outline" onClick={handleExportShoppingList} className="gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              Shopping List
+            </Button>
+            <Button variant="default" onClick={handleExportCalendar} className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Export Calendar
             </Button>
           </div>
         </div>
@@ -409,18 +536,94 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 mt-8 justify-center">
-          <Button variant="hero" size="lg" className="gap-2">
+          <Button 
+            variant="hero" 
+            size="lg" 
+            className="gap-2"
+            onClick={() => setShowSaveDialog(true)}
+          >
             <Save className="h-5 w-5" />
             Save This Plan
           </Button>
-          <Button variant="outline" size="lg" className="gap-2">
+          <Button 
+            variant="outline" 
+            size="lg" 
+            className="gap-2"
+            onClick={onBack}
+          >
             Generate New Plan
           </Button>
-          <Button variant="secondary" size="lg" className="gap-2">
-            Share Plan
+          <Button 
+            variant="secondary" 
+            size="lg" 
+            className="gap-2"
+            onClick={handleExportShoppingList}
+          >
+            <ShoppingCart className="h-5 w-5" />
+            Shopping List
           </Button>
         </div>
       </div>
     </section>
+
+    {/* Save Dialog */}
+    <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Save Meal Plan</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="plan-name">Plan Name</Label>
+            <Input
+              id="plan-name"
+              placeholder="e.g., Healthy Week 1"
+              value={saveData.name}
+              onChange={(e) => setSaveData(prev => ({ ...prev, name: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="plan-description">Description (Optional)</Label>
+            <Textarea
+              id="plan-description"
+              placeholder="Brief description of this meal plan..."
+              value={saveData.description}
+              onChange={(e) => setSaveData(prev => ({ ...prev, description: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="plan-tags">Tags (Optional)</Label>
+            <Input
+              id="plan-tags"
+              placeholder="e.g., vegetarian, budget-friendly, indian"
+              value={saveData.tags}
+              onChange={(e) => setSaveData(prev => ({ ...prev, tags: e.target.value }))}
+            />
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={handleSaveMealPlan} disabled={saving} className="flex-1">
+              {saving ? (
+                <>
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Plan
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* Auth Modal */}
+    <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} />
+    </>
   );
 }
