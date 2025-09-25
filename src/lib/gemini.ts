@@ -17,6 +17,12 @@ export interface MealPreferences {
   dislikedIngredients: string;
 }
 
+export interface VideoScript {
+  scenes: string[];
+  narration: string;
+  duration: string;
+}
+
 export interface HealthGoals {
   primaryGoal: 'weight_loss' | 'muscle_gain' | 'maintenance';
   calorieTarget: number;
@@ -298,5 +304,67 @@ export async function generateRecipe(ingredients: string, cuisine?: string): Pro
   } catch (error) {
     console.error('Error generating recipe:', error);
     throw new Error('Failed to generate recipe. Please try again.');
+  }
+}
+
+export async function generateVideoScript(recipe: any): Promise<VideoScript> {
+  const prompt = `Create a professional cooking video script for: ${recipe.name}
+
+RECIPE DETAILS:
+- Dish: ${recipe.name}
+- Cuisine: ${recipe.cuisineType || 'Indian'}
+- Prep Time: ${recipe.prepTime || '15 minutes'}
+- Difficulty: ${recipe.difficulty || 'Easy'}
+
+INSTRUCTIONS TO USE:
+${recipe.instructions ? recipe.instructions.join('\n') : 'Standard cooking process'}
+
+INGREDIENTS:
+${recipe.ingredients ? recipe.ingredients.join(', ') : 'Standard ingredients'}
+
+Generate a video script with:
+
+1. VIDEO SCENES (6-8 short descriptions for AI video generation):
+Each scene should be 4-8 words, optimized for AI video tools like RunwayML/Pika
+Style: Professional Indian kitchen, cinematic lighting, warm colors, 4K quality
+
+2. NARRATION SCRIPT:
+Professional Indian accent, warm and instructional tone
+Duration: 60-90 seconds total
+Include cooking tips and techniques
+
+3. TIMING:
+Specify duration for each scene (3-8 seconds each)
+
+Return in JSON format:
+{
+  "scenes": [
+    "Professional hands washing basmati rice",
+    "Heating ghee in heavy-bottomed pot", 
+    "Adding whole spices, aromatic sizzling",
+    "Layering marinated chicken pieces",
+    "Steam rising from covered pot",
+    "Garnishing with fresh mint leaves"
+  ],
+  "narration": "Welcome to this authentic Chicken Biryani recipe...",
+  "duration": "90 seconds"
+}`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    // Extract JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in video script response');
+    }
+    
+    const videoScript = JSON.parse(jsonMatch[0]);
+    return videoScript;
+  } catch (error) {
+    console.error('Error generating video script:', error);
+    throw new Error('Failed to generate video script. Please try again.');
   }
 }
