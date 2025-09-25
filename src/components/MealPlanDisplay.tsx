@@ -423,20 +423,15 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
                   </ol>
                 </div>
 
-                <Button variant="outline" size="sm" className="w-full mb-2">
-                  View Full Recipe
-                </Button>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="meal" 
-                        size="sm" 
-                        className="w-full gap-2"
-                        onClick={() => !generatedRecipes[key] && handleGenerateRecipe(meal, key)}
-                        disabled={generatingRecipe === key}
-                      >
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="meal" 
+                      size="sm" 
+                      className="w-full gap-2"
+                      onClick={() => !generatedRecipes[key] && handleGenerateRecipe(meal, key)}
+                      disabled={generatingRecipe === key}
+                    >
                         {generatingRecipe === key ? (
                           <><Loader className="h-4 w-4 animate-spin" /> Generating...</>
                         ) : (
@@ -518,6 +513,8 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
                     )}
                   </Dialog>
 
+                  {/* Temporarily disabled video generation */}
+                  {/* 
                   <Dialog open={showVideoPlayer === key} onOpenChange={() => setShowVideoPlayer(null)}>
                     <DialogTrigger asChild>
                       <Button
@@ -556,7 +553,7 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
                       </DialogContent>
                     )}
                   </Dialog>
-                </div>
+                  */}
               </CardContent>
             </Card>
           ))}
