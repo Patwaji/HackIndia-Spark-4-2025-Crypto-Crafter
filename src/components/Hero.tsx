@@ -84,13 +84,13 @@ export default function Hero() {
                   <div key={i} className="w-8 h-8 rounded-full bg-gradient-primary border-2 border-background"></div>
                 ))}
               </div>
-              <span>10,000+ happy users</span>
+              <span>Join our beta community</span>
             </div>
             <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="w-4 h-4 text-yellow-400">★</div>
-              ))}
-              <span className="ml-2">4.9/5 rating</span>
+              <div className="bg-primary/20 px-3 py-1 rounded-full text-sm">
+                Beta Release
+              </div>
+              <span className="text-sm text-muted-foreground">Try our AI meal planner</span>
             </div>
           </div>
         </div>

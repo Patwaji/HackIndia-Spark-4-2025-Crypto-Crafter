@@ -14,7 +14,7 @@ export default function FinalCTA() {
         <div className="max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-full mb-8">
             <Sparkles className="h-4 w-4" />
-            <span className="text-sm font-medium">Join 50,000+ Happy Users</span>
+            <span className="text-sm font-medium">Join Our Beta Community</span>
           </div>
           
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
