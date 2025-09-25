@@ -72,7 +72,7 @@ const features = [
   {
     icon: Shield,
     title: "Nutritional Accuracy",
-    description: "USDA-verified nutritional data with AI-enhanced analysis for maximum accuracy and health benefits.",
+    description: "AI-powered nutritional analysis with comprehensive macro and micronutrient calculations for Indian cuisine.",
     color: "text-indigo-500",
     gradient: "bg-gradient-to-br from-indigo-500 to-indigo-400"
   },
