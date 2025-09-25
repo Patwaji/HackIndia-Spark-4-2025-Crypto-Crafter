@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, GoogleGenerativeAIResponseError } from '@google/generative-ai';
 import { safeNumber } from './utils';
 
 // Initialize Gemini AI with secure environment variable
@@ -17,11 +17,14 @@ export interface MealPreferences {
   dislikedIngredients: string;
 }
 
-export interface VideoScript {
-  scenes: string[];
+export interface VideoScene {
+  scene_visual: string;
   narration: string;
-  duration: string;
+  duration_in_seconds: number;
 }
+
+// VideoScript is now an array of VideoScene
+export type VideoScript = VideoScene[];
 
 export interface HealthGoals {
   primaryGoal: 'weight_loss' | 'muscle_gain' | 'maintenance';
@@ -216,7 +219,10 @@ Return ONLY valid JSON in this exact format:
     return mealPlan;
   } catch (error) {
     console.error('Error generating meal plan:', error);
-    throw new Error('Failed to generate meal plan. Please try again.');
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate meal plan: ${error.message}`);
+    }
+    throw new Error('An unknown error occurred during meal plan generation.');
   }
 }
 
@@ -308,63 +314,38 @@ export async function generateRecipe(ingredients: string, cuisine?: string): Pro
 }
 
 export async function generateVideoScript(recipe: any): Promise<VideoScript> {
-  const prompt = `Create a professional cooking video script for: ${recipe.name}
-
-RECIPE DETAILS:
-- Dish: ${recipe.name}
-- Cuisine: ${recipe.cuisineType || 'Indian'}
-- Prep Time: ${recipe.prepTime || '15 minutes'}
-- Difficulty: ${recipe.difficulty || 'Easy'}
-
-INSTRUCTIONS TO USE:
-${recipe.instructions ? recipe.instructions.join('\n') : 'Standard cooking process'}
-
-INGREDIENTS:
-${recipe.ingredients ? recipe.ingredients.join(', ') : 'Standard ingredients'}
-
-Generate a video script with:
-
-1. VIDEO SCENES (6-8 short descriptions for AI video generation):
-Each scene should be 4-8 words, optimized for AI video tools like RunwayML/Pika
-Style: Professional Indian kitchen, cinematic lighting, warm colors, 4K quality
-
-2. NARRATION SCRIPT:
-Professional Indian accent, warm and instructional tone
-Duration: 60-90 seconds total
-Include cooking tips and techniques
-
-3. TIMING:
-Specify duration for each scene (3-8 seconds each)
-
-Return in JSON format:
-{
-  "scenes": [
-    "Professional hands washing basmati rice",
-    "Heating ghee in heavy-bottomed pot", 
-    "Adding whole spices, aromatic sizzling",
-    "Layering marinated chicken pieces",
-    "Steam rising from covered pot",
-    "Garnishing with fresh mint leaves"
-  ],
-  "narration": "Welcome to this authentic Chicken Biryani recipe...",
-  "duration": "90 seconds"
-}`;
+  const prompt = `Given a meal plan with ingredients and cooking steps, create a short recipe video script under 3 minutes.\n\nInclude:\n1. Title scene (2-3 sec).\n2. Ingredients list (≤ 15 sec).\n3. 3–5 cooking scenes with short narration (≤ 20 sec each).\n4. Final dish presentation (≤ 5 sec).\n\nKeep narration concise, beginner-friendly, and engaging.\nOutput in JSON format as an array of scenes, each with:\n- scene_visual\n- narration\n- duration_in_seconds\n\nRECIPE DETAILS:\n- Dish: ${recipe.name}\n- Cuisine: ${recipe.cuisineType || 'Indian'}\n- Prep Time: ${recipe.prepTime || '15 minutes'}\n- Difficulty: ${recipe.difficulty || 'Easy'}\n\nINGREDIENTS:\n${recipe.ingredients ? recipe.ingredients.join(', ') : 'Standard ingredients'}\n\nCOOKING STEPS:\n${recipe.instructions ? recipe.instructions.join('\n') : 'Standard cooking process'}\n\nReturn ONLY valid JSON in this format:\n[\n  {\n    "scene_visual": "...",\n    "narration": "...",\n    "duration_in_seconds": 0\n  }\n]`;
 
   try {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    
-    // Extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    console.log("Gemini response for video script:", text);
+
+    // Extract JSON array from response
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      throw new Error('No valid JSON found in video script response');
+      throw new Error('No valid JSON array found in video script response');
     }
-    
-    const videoScript = JSON.parse(jsonMatch[0]);
-    return videoScript;
+
+    try {
+      const videoScenes = JSON.parse(jsonMatch[0]);
+      return videoScenes;
+    } catch (parseError) {
+      console.error("Failed to parse video script JSON:", parseError);
+      throw new Error("The AI returned an invalid format for the video script.");
+    }
+
   } catch (error) {
     console.error('Error generating video script:', error);
+    if (error instanceof GoogleGenerativeAIResponseError) {
+      console.error('Gemini Response Error:', JSON.stringify(error.response, null, 2));
+      const blockReason = error.response.promptFeedback?.blockReason;
+      throw new Error(`Video script generation failed due to: ${blockReason || 'API error'}. Check console for details.`);
+    }
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate video script: ${error.message}`);
+    }
     throw new Error('Failed to generate video script. Please try again.');
   }
 }

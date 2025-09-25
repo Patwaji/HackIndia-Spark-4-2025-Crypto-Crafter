@@ -130,6 +130,7 @@ export default function MealPlanWizard() {
       return;
     }
 
+    console.log("Generating meal plan with:", { preferences, goals, budget });
     setIsGenerating(true);
     try {
       const plan = await generateMealPlan(preferences, goals, budget);

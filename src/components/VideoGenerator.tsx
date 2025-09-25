@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -12,43 +12,28 @@ interface VideoGeneratorProps {
 }
 
 export default function VideoGenerator({ recipe, onVideoGenerated }: VideoGeneratorProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState('');
+  const [currentStep, setCurrentStep] = useState('Initializing...');
   const [generatedVideo, setGeneratedVideo] = useState<GeneratedVideo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const generateVideo = async () => {
+    console.log('Generating video for recipe:', recipe);
     setIsGenerating(true);
     setProgress(0);
+    setCurrentStep('Starting...');
     setError(null);
     
     try {
-      // Step 1: Generate script
-      setCurrentStep('Creating video script...');
-      setProgress(10);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Step 2: Generate scenes
-      setCurrentStep('Generating video scenes...');
-      setProgress(30);
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      // Step 3: Create voiceover
-      setCurrentStep('Adding professional voiceover...');
-      setProgress(60);
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Step 4: Combine everything
-      setCurrentStep('Combining video and audio...');
-      setProgress(80);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Final step
-      setCurrentStep('Finalizing your cooking video...');
-      setProgress(95);
-      
-      const video = await freeVideoGenerator.generateCookingVideo(recipe);
+      const video = await freeVideoGenerator.generateCookingVideo(
+        recipe,
+        {},
+        (progress) => {
+          setCurrentStep(progress.step);
+          setProgress(progress.progress);
+        }
+      );
       
       setProgress(100);
       setCurrentStep('Video ready!');
@@ -56,11 +41,16 @@ export default function VideoGenerator({ recipe, onVideoGenerated }: VideoGenera
       onVideoGenerated?.(video);
       
     } catch (err) {
+      console.error('Video generation error:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate video');
     } finally {
       setIsGenerating(false);
     }
   };
+
+  useEffect(() => {
+    generateVideo();
+  }, []);
 
   const credits = freeVideoGenerator.getAvailableCredits();
 
@@ -83,45 +73,6 @@ export default function VideoGenerator({ recipe, onVideoGenerated }: VideoGenera
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {!generatedVideo && !isGenerating && (
-          <div className="text-center space-y-4">
-            <p className="text-muted-foreground">
-              Transform your recipe into a professional cooking video using AI
-            </p>
-            
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">6-8</div>
-                <div className="text-muted-foreground">Video Scenes</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">60-90s</div>
-                <div className="text-muted-foreground">Duration</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary">4K</div>
-                <div className="text-muted-foreground">Quality</div>
-              </div>
-            </div>
-
-            <Button 
-              onClick={generateVideo} 
-              className="w-full" 
-              size="lg"
-              disabled={credits.runway === 0 && credits.pika === 0 && credits.luma === 0}
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Generate Cooking Video
-            </Button>
-            
-            {credits.runway === 0 && credits.pika === 0 && credits.luma === 0 && (
-              <p className="text-sm text-yellow-600">
-                Daily free credits exhausted. Try again tomorrow!
-              </p>
-            )}
-          </div>
-        )}
-
         {isGenerating && (
           <div className="space-y-4">
             <div className="text-center">

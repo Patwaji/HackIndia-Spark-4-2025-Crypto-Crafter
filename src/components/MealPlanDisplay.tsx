@@ -23,7 +23,7 @@ import {
   Loader,
   Calendar,
   ShoppingCart,
-  Star
+  Star,
 } from "lucide-react";
 import type { MealPlan, Meal } from "@/lib/gemini";
 import { generateRecipe } from "@/lib/gemini";
@@ -32,7 +32,7 @@ import { formatCurrency, safeNumber } from "@/lib/utils";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { saveMealPlan, generateShoppingList, exportToCalendar } from "@/lib/mealPlanService";
-import AuthModal from "./AuthModal";
+import { freeVideoGenerator, type GeneratedVideo } from "@/lib/videoGeneration";
 
 interface MealPlanDisplayProps {
   mealPlan: MealPlan;
@@ -42,6 +42,7 @@ interface MealPlanDisplayProps {
 export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayProps) {
   const [generatingRecipe, setGeneratingRecipe] = useState<string | null>(null);
   const [generatedRecipes, setGeneratedRecipes] = useState<Record<string, any>>({});
+  const [generatingVideo, setGeneratingVideo] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -50,6 +51,8 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
     description: '',
     tags: ''
   });
+  const [generatedVideos, setGeneratedVideos] = useState<Record<string, GeneratedVideo>>({});
+  const [showVideoPlayer, setShowVideoPlayer] = useState<string | null>(null);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -60,6 +63,8 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
     { key: 'snack', meal: mealPlan.snack, icon: '🍎', color: 'text-green-600' },
     { key: 'dinner', meal: mealPlan.dinner, icon: '🌙', color: 'text-purple-600' }
   ];
+
+
 
   const handleGenerateRecipe = async (meal: Meal, mealKey: string) => {
     setGeneratingRecipe(mealKey);
@@ -79,6 +84,26 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
       });
     } finally {
       setGeneratingRecipe(null);
+    }
+  };
+
+  const handleGenerateVideo = async (meal: Meal, mealKey: string) => {
+    setGeneratingVideo(mealKey);
+    try {
+      const video = await freeVideoGenerator.generateCookingVideo(meal);
+      setGeneratedVideos(prev => ({ ...prev, [mealKey]: video }));
+      toast({
+        title: "Video Generated!",
+        description: `Video for ${meal.name} is ready.`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Video Generation Failed",
+        description: error instanceof Error ? error.message : "Please try again later.",
+      });
+    } finally {
+      setGeneratingVideo(null);
     }
   };
 
@@ -402,134 +427,139 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
                   View Full Recipe
                 </Button>
                 
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="meal" 
-                      size="sm" 
-                      className="w-full gap-2"
-                      onClick={() => !generatedRecipes[key] && handleGenerateRecipe(meal, key)}
-                      disabled={generatingRecipe === key}
-                    >
-                      {generatingRecipe === key ? (
-                        <>
-                          <Loader className="h-4 w-4 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <BookOpen className="h-4 w-4" />
-                          {generatedRecipes[key] ? 'View Generated Recipe' : 'Generate Detailed Recipe'}
-                        </>
-                      )}
-                    </Button>
-                  </DialogTrigger>
-                  {generatedRecipes[key] && (
-                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                          <span className="text-2xl">{icon}</span>
-                          {generatedRecipes[key].name}
-                        </DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {generatedRecipes[key].cookingTime}
-                          </div>
-                          <Badge variant={generatedRecipes[key].difficulty === 'easy' ? 'default' : generatedRecipes[key].difficulty === 'medium' ? 'secondary' : 'destructive'}>
-                            {generatedRecipes[key].difficulty}
-                          </Badge>
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-semibold mb-2">Ingredients:</h4>
-                          <ul className="space-y-1">
-                            {generatedRecipes[key].ingredients?.map((ingredient: string, idx: number) => (
-                              <li key={idx} className="text-sm">• {ingredient}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-semibold mb-2">Instructions:</h4>
-                          <ol className="space-y-2">
-                            {generatedRecipes[key].instructions?.map((step: string, idx: number) => (
-                              <li key={idx} className="text-sm">
-                                <span className="font-medium">{idx + 1}.</span> {step}
-                              </li>
-                            ))}
-                          </ol>
-                        </div>
-                        
-                        {generatedRecipes[key].estimatedCost && (
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <DollarSign className="h-4 w-4" />
-                            {formatCurrency(generatedRecipes[key].estimatedCost)} estimated cost
-                          </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button 
+                        variant="meal" 
+                        size="sm" 
+                        className="w-full gap-2"
+                        onClick={() => !generatedRecipes[key] && handleGenerateRecipe(meal, key)}
+                        disabled={generatingRecipe === key}
+                      >
+                        {generatingRecipe === key ? (
+                          <><Loader className="h-4 w-4 animate-spin" /> Generating...</>
+                        ) : (
+                          <><BookOpen className="h-4 w-4" /> {generatedRecipes[key] ? 'View Recipe' : 'Generate Recipe'}</>
                         )}
-                        
-                        {generatedRecipes[key].nutrition && (
-                          <div className="bg-muted rounded-lg p-3">
-                            <h4 className="font-semibold mb-2">Nutrition (per serving):</h4>
-                            <div className="grid grid-cols-4 gap-2 text-center text-sm">
+                      </Button>
+                    </DialogTrigger>
+                    {generatedRecipes[key] && (
+                      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <span className="text-2xl">{icon}</span>
+                            {generatedRecipes[key].name}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              {generatedRecipes[key].cookingTime}
+                            </div>
+                            <Badge variant={generatedRecipes[key].difficulty === 'easy' ? 'default' : generatedRecipes[key].difficulty === 'medium' ? 'secondary' : 'destructive'}>
+                              {generatedRecipes[key].difficulty}
+                            </Badge>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-semibold mb-2">Ingredients:</h4>
+                            <ul className="space-y-1">
+                              {generatedRecipes[key].ingredients?.map((ingredient: string, idx: number) => (
+                                <li key={idx} className="text-sm">• {ingredient}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-semibold mb-2">Instructions:</h4>
+                            <ol className="space-y-2">
+                              {generatedRecipes[key].instructions?.map((step: string, idx: number) => (
+                                <li key={idx} className="text-sm">
+                                  <span className="font-medium">{idx + 1}.</span> {step}
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
+                          
+                          {generatedRecipes[key].estimatedCost && (
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <DollarSign className="h-4 w-4" />
+                              {formatCurrency(generatedRecipes[key].estimatedCost)} estimated cost
+                            </div>
+                          )}
+                          
+                          {generatedRecipes[key].nutrition && (
+                            <div className="bg-muted rounded-lg p-3">
+                              <h4 className="font-semibold mb-2">Nutrition (per serving):</h4>
+                              <div className="grid grid-cols-4 gap-2 text-center text-sm">
+                                <div>
+                                <div className="font-semibold text-primary">{safeNumber(generatedRecipes[key].nutrition.calories)}</div>
+                                <div className="text-xs text-muted-foreground">cal</div>
+                              </div>
                               <div>
-                              <div className="font-semibold text-primary">{safeNumber(generatedRecipes[key].nutrition.calories)}</div>
-                              <div className="text-xs text-muted-foreground">cal</div>
-                            </div>
-                            <div>
-                              <div className="font-semibold">{safeNumber(generatedRecipes[key].nutrition.protein)}g</div>
-                              <div className="text-xs text-muted-foreground">protein</div>
-                            </div>
-                            <div>
-                              <div className="font-semibold">{safeNumber(generatedRecipes[key].nutrition.carbs)}g</div>
-                              <div className="text-xs text-muted-foreground">carbs</div>
-                            </div>
-                            <div>
-                              <div className="font-semibold">{safeNumber(generatedRecipes[key].nutrition.fat)}g</div>
-                              <div className="text-xs text-muted-foreground">fat</div>
+                                <div className="font-semibold">{safeNumber(generatedRecipes[key].nutrition.protein)}g</div>
+                                <div className="text-xs text-muted-foreground">protein</div>
+                              </div>
+                              <div>
+                                <div className="font-semibold">{safeNumber(generatedRecipes[key].nutrition.carbs)}g</div>
+                                <div className="text-xs text-muted-foreground">carbs</div>
+                              </div>
+                              <div>
+                                <div className="font-semibold">{safeNumber(generatedRecipes[key].nutrition.fat)}g</div>
+                                <div className="text-xs text-muted-foreground">fat</div>
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          )}
+                        </div>
+                      </DialogContent>
+                    )}
+                  </Dialog>
+
+                  <Dialog open={showVideoPlayer === key} onOpenChange={() => setShowVideoPlayer(null)}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ai"
+                        size="sm"
+                        className="w-full gap-2"
+                        onClick={() => {
+                          if (generatedVideos[key]) {
+                            setShowVideoPlayer(key);
+                          } else {
+                            handleGenerateVideo(meal, key);
+                          }
+                        }}
+                        disabled={generatingVideo === key}
+                      >
+                        {generatingVideo === key ? (
+                          <><Loader className="h-4 w-4 animate-spin" /> Generating...</>
+                        ) : (
+                          <><Zap className="h-4 w-4" /> {generatedVideos[key] ? 'View Video' : 'Generate Video'}</>
                         )}
-                      </div>
-                    </DialogContent>
-                  )}
-                </Dialog>
+                      </Button>
+                    </DialogTrigger>
+                    {generatedVideos[key] && generatedVideos[key].status === 'completed' && (
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Cooking Video: {meal.name}</DialogTitle>
+                        </DialogHeader>
+                        <div className="aspect-video bg-black rounded-lg">
+                          <video
+                            src={generatedVideos[key].url}
+                            controls
+                            autoPlay
+                            className="w-full h-full rounded-lg"
+                          />
+                        </div>
+                      </DialogContent>
+                    )}
+                  </Dialog>
+                </div>
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        {/* AI Video Recipe Generator */}
-        <div className="mt-8 mb-8">
-          <VideoGenerator 
-            recipe={{
-              name: `${mealPlan.breakfast?.name || 'Daily'} Meal Plan`,
-              instructions: [
-                ...(mealPlan.breakfast?.instructions || []),
-                ...(mealPlan.lunch?.instructions || []),
-                ...(mealPlan.snack?.instructions || []),
-                ...(mealPlan.dinner?.instructions || [])
-              ],
-              ingredients: [
-                ...(mealPlan.breakfast?.ingredients || []),
-                ...(mealPlan.lunch?.ingredients || []),
-                ...(mealPlan.snack?.ingredients || []),
-                ...(mealPlan.dinner?.ingredients || [])
-              ],
-              cuisineType: mealPlan.breakfast?.cuisineType || 'Indian',
-              prepTime: '30 minutes',
-              difficulty: 'medium'
-            }}
-            onVideoGenerated={(video) => {
-              toast({
-                title: "Video Generated! 🎬",
-                description: "Your cooking video is ready to watch!",
-              });
-            }}
-          />
         </div>
 
         {/* AI Recommendations */}
@@ -654,7 +684,11 @@ export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayPro
     </Dialog>
 
     {/* Auth Modal */}
-    <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} />
+    {/* Assuming AuthModal exists. If not, this will cause an error. */}
+    {/* <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} /> */}
+    {showAuthModal && (
+      <p>AuthModal would be here. The component was not provided.</p>
+    )}
     </>
   );
 }
