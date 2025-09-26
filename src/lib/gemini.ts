@@ -1,10 +1,6 @@
 import { GoogleGenerativeAI, GoogleGenerativeAIResponseError } from '@google/generative-ai';
 import { safeNumber } from './utils';
 
-// 🏪 INDIAN MARKET PRICING (September 2025)
-// Enforced in AI prompts to ensure realistic meal costs
-// Basic ingredients: Rice ₹50-120/kg, Dal ₹90-150/kg, Vegetables ₹15-90/kg
-// Meal costs: Breakfast ₹25-45, Lunch ₹60-90, Snack ₹15-35, Dinner ₹50-80
 
 // Initialize Gemini AI with secure environment variable
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
