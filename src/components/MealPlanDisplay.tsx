@@ -39,9 +39,24 @@ interface MealPlanDisplayProps {
   onBack: () => void;
 }
 
+interface GeneratedRecipe {
+  name: string;
+  ingredients: string[];
+  instructions: string[];
+  cookingTime: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  nutrition: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  estimatedCost: number;
+}
+
 export default function MealPlanDisplay({ mealPlan, onBack }: MealPlanDisplayProps) {
   const [generatingRecipe, setGeneratingRecipe] = useState<string | null>(null);
-  const [generatedRecipes, setGeneratedRecipes] = useState<Record<string, any>>({});
+  const [generatedRecipes, setGeneratedRecipes] = useState<Record<string, GeneratedRecipe>>({});
   const [generatingVideo, setGeneratingVideo] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);

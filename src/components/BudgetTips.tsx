@@ -102,7 +102,7 @@ const BudgetTips = ({ budget }: BudgetTipsProps) => {
           <IconComponent className="h-4 w-4" />
           <AlertDescription>
             <div className="flex items-center gap-2 mb-2">
-              <Badge variant={currentData.color as any}>{currentData.title}</Badge>
+              <Badge variant={currentData.color as "default" | "secondary" | "destructive" | "outline" | null | undefined}>{currentData.title}</Badge>
             </div>
           </AlertDescription>
         </Alert>

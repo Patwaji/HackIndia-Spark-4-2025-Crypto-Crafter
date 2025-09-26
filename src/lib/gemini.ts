@@ -9,7 +9,9 @@ if (!apiKey) {
 }
 
 export const genAI = new GoogleGenerativeAI(apiKey);
-export const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+export const model = genAI.getGenerativeModel({ 
+  model: 'gemini-1.5-flash-8b'
+});
 
 export interface MealPreferences {
   cuisineType: string;
@@ -75,12 +77,36 @@ export interface MealPlan {
   totalCost: number;
 }
 
+export interface GeneratedRecipe {
+  name: string;
+  ingredients: string[];
+  instructions: string[];
+  cookingTime: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  nutrition: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  estimatedCost: number;
+}
+
 export async function generateMealPlan(
   preferences: MealPreferences,
   goals: HealthGoals,
   budget: BudgetConstraints
 ): Promise<MealPlan> {
-  const prompt = `You are a professional nutritionist and meal planning expert specializing in Indian cuisine and Indian market pricing. Create a complete daily meal plan based on these requirements:
+  // Validate API key
+  if (!apiKey || apiKey.trim() === '') {
+    throw new Error('❌ Gemini API key is missing. Please check your .env file.');
+  }
+
+  console.log('🔑 Using API Key:', apiKey.substring(0, 15) + '...');
+  console.log('🤖 Model:', 'gemini-pro');
+  
+  try {
+    const prompt = `You are a professional nutritionist and meal planning expert specializing in Indian cuisine and Indian market pricing. Create a complete daily meal plan based on these requirements:
 
 STRICT REQUIREMENTS (MUST FOLLOW):
 - Cuisine: ${preferences.cuisineType} ${preferences.cuisineType !== 'Any' ? '(ONLY this cuisine type - no mixing with other cuisines)' : ''}
@@ -164,18 +190,22 @@ Return ONLY valid JSON in this exact format:
   "totalCost": 0.00
 }`;
 
-  try {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
     
+    console.log('✅ Successfully got response from Gemini');
+    console.log('📝 Response preview:', text.substring(0, 200) + '...');
+    
     // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error('❌ No JSON found in response:', text);
       throw new Error('No valid JSON found in response');
     }
     
     const mealPlan = JSON.parse(jsonMatch[0]);
+    console.log('✅ Successfully parsed meal plan');
     
     // Validate the meal plan follows user preferences
     const totalCost = mealPlan.totalCost || 0;
@@ -218,11 +248,23 @@ Return ONLY valid JSON in this exact format:
     
     return mealPlan;
   } catch (error) {
-    console.error('Error generating meal plan:', error);
+    console.error('❌ Error generating meal plan:', error);
+    
     if (error instanceof Error) {
-      throw new Error(`Failed to generate meal plan: ${error.message}`);
+      // Check for specific API errors
+      if (error.message.includes('404')) {
+        throw new Error('❌ Model not found. Your API key may not have access to Gemini models. Please:\n1. Generate a new API key at https://aistudio.google.com/app/apikey\n2. Make sure Gemini API is enabled\n3. Check if your API key has proper permissions');
+      }
+      if (error.message.includes('PERMISSION_DENIED')) {
+        throw new Error('❌ Permission denied. Please check your API key permissions.');
+      }
+      if (error.message.includes('QUOTA_EXCEEDED')) {
+        throw new Error('❌ API quota exceeded. Please check your usage limits.');
+      }
+      
+      throw new Error(`❌ Failed to generate meal plan: ${error.message}`);
     }
-    throw new Error('An unknown error occurred during meal plan generation.');
+    throw new Error('❌ An unknown error occurred during meal plan generation.');
   }
 }
 
@@ -250,7 +292,7 @@ Be conversational, supportive, and informative.`;
   }
 }
 
-export async function generateRecipe(ingredients: string, cuisine?: string): Promise<any> {
+export async function generateRecipe(ingredients: string, cuisine?: string): Promise<GeneratedRecipe> {
   const prompt = `Create a recipe using these available ingredients: ${ingredients}
   ${cuisine ? `Cuisine preference: ${cuisine}` : ''}
   
@@ -313,7 +355,7 @@ export async function generateRecipe(ingredients: string, cuisine?: string): Pro
   }
 }
 
-export async function generateVideoScript(recipe: any): Promise<VideoScript> {
+export async function generateVideoScript(recipe: Meal): Promise<VideoScript> {
   const prompt = `Given a meal plan with ingredients and cooking steps, create a short recipe video script under 3 minutes.\n\nInclude:\n1. Title scene (2-3 sec).\n2. Ingredients list (≤ 15 sec).\n3. 3–5 cooking scenes with short narration (≤ 20 sec each).\n4. Final dish presentation (≤ 5 sec).\n\nKeep narration concise, beginner-friendly, and engaging.\nOutput in JSON format as an array of scenes, each with:\n- scene_visual\n- narration\n- duration_in_seconds\n\nRECIPE DETAILS:\n- Dish: ${recipe.name}\n- Cuisine: ${recipe.cuisineType || 'Indian'}\n- Prep Time: ${recipe.prepTime || '15 minutes'}\n- Difficulty: ${recipe.difficulty || 'Easy'}\n\nINGREDIENTS:\n${recipe.ingredients ? recipe.ingredients.join(', ') : 'Standard ingredients'}\n\nCOOKING STEPS:\n${recipe.instructions ? recipe.instructions.join('\n') : 'Standard cooking process'}\n\nReturn ONLY valid JSON in this format:\n[\n  {\n    "scene_visual": "...",\n    "narration": "...",\n    "duration_in_seconds": 0\n  }\n]`;
 
   try {

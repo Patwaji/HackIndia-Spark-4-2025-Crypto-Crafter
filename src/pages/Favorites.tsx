@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { getFavoriteMealPlans, toggleFavorite, generateShoppingList, exportToCalendar } from '../lib/mealPlanService';
@@ -21,6 +21,7 @@ import {
   HeartOff
 } from 'lucide-react';
 import type { SavedMealPlan } from '../lib/mealPlanService';
+import type { MealPlan } from '../lib/gemini';
 
 const Favorites: React.FC = () => {
   const { user } = useAuth();
@@ -30,11 +31,7 @@ const Favorites: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [toggleLoading, setToggleLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadFavorites();
-  }, [user]);
-
-  const loadFavorites = async () => {
+  const loadFavorites = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
@@ -46,7 +43,11 @@ const Favorites: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadFavorites();
+  }, [loadFavorites]);
 
   const handleToggleFavorite = async (planId: string) => {
     if (!user) return;
@@ -109,13 +110,13 @@ const Favorites: React.FC = () => {
     plan.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatDate = (date: any) => {
+  const formatDate = (date: Date | { toDate: () => Date }) => {
     if (!date) return 'Unknown';
-    const d = date.toDate ? date.toDate() : new Date(date);
+    const d = typeof date === 'object' && 'toDate' in date ? date.toDate() : new Date(date);
     return d.toLocaleDateString();
   };
 
-  const getMealCount = (mealPlan: any) => {
+  const getMealCount = (mealPlan: MealPlan) => {
     let count = 0;
     if (mealPlan.breakfast) count++;
     if (mealPlan.lunch) count++;

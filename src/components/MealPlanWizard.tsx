@@ -243,7 +243,7 @@ export default function MealPlanWizard() {
                 <div className="space-y-4">
                   <div>
                     <Label>Primary Goal</Label>
-                    <Select value={goals.primaryGoal} onValueChange={(value: any) => 
+                    <Select value={goals.primaryGoal} onValueChange={(value: 'weight_loss' | 'muscle_gain' | 'maintenance') => 
                       setGoals({...goals, primaryGoal: value})
                     }>
                       <SelectTrigger>
@@ -328,7 +328,7 @@ export default function MealPlanWizard() {
 
                   <div>
                     <Label>Budget Priority</Label>
-                    <Select value={budget.budgetPriority} onValueChange={(value: any) => 
+                    <Select value={budget.budgetPriority} onValueChange={(value: 'strict' | 'balanced' | 'nutrition_focused') => 
                       setBudget({...budget, budgetPriority: value})
                     }>
                       <SelectTrigger>

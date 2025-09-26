@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Play, Download, Share2, Clock, Zap } from 'lucide-react';
 import { freeVideoGenerator, GeneratedVideo } from '@/lib/videoGeneration';
+import type { Meal } from "@/lib/gemini";
 
 interface VideoGeneratorProps {
-  recipe: any;
+  recipe: Meal;
   onVideoGenerated?: (video: GeneratedVideo) => void;
 }
 
@@ -18,7 +19,7 @@ export default function VideoGenerator({ recipe, onVideoGenerated }: VideoGenera
   const [generatedVideo, setGeneratedVideo] = useState<GeneratedVideo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const generateVideo = async () => {
+  const generateVideo = useCallback(async () => {
     console.log('Generating video for recipe:', recipe);
     setIsGenerating(true);
     setProgress(0);
@@ -46,11 +47,11 @@ export default function VideoGenerator({ recipe, onVideoGenerated }: VideoGenera
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [recipe, onVideoGenerated]);
 
   useEffect(() => {
     generateVideo();
-  }, []);
+  }, [generateVideo]);
 
   const credits = freeVideoGenerator.getAvailableCredits();
 

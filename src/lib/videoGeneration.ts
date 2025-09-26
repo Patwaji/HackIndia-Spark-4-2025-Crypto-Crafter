@@ -1,4 +1,4 @@
-import { generateVideoScript } from './gemini';
+import { generateVideoScript, VideoScript, Meal } from './gemini';
 
 export interface VideoGenerationConfig {
   provider: 'runway' | 'pika' | 'luma' | 'local';
@@ -36,7 +36,7 @@ export class FreeVideoGenerator {
   private lumaCredits: number = 20;    // Free tier
 
   async generateCookingVideo(
-    recipe: any, 
+    recipe: Meal, 
     config?: Partial<VideoGenerationConfig>,
     onProgress?: (progress: { step: string; progress: number }) => void
   ): Promise<GeneratedVideo> {
@@ -44,7 +44,7 @@ export class FreeVideoGenerator {
       // Step 1: Generate video script using Gemini (new format)
       onProgress?.({ step: 'Generating video script...', progress: 10 });
       console.log('Generating video script with Gemini...');
-      const scenesArr: any[] = await generateVideoScript(recipe); // Array of scenes
+      const scenesArr: VideoScript = await generateVideoScript(recipe); // Array of scenes
 
       // Step 2: Choose provider (allow override)
       const provider = config?.provider || this.chooseBestProvider();
@@ -53,7 +53,7 @@ export class FreeVideoGenerator {
       // Step 3: Generate video scenes (use scene_visual and duration)
       onProgress?.({ step: 'Generating video scenes...', progress: 30 });
       console.log(`Generating video with ${provider}...`);
-      const videoScenePrompts = scenesArr.map((scene: any) => scene.scene_visual);
+      const videoScenePrompts = scenesArr.map((scene) => scene.scene_visual);
       const videoUrls = await this.generateScenes(videoScenePrompts, provider, quality, (progress) => {
         onProgress?.({ 
           step: `Generating scene ${progress.current} of ${progress.total}...`, 
@@ -64,7 +64,7 @@ export class FreeVideoGenerator {
       // Step 4: Generate voiceover (concatenate narrations)
       onProgress?.({ step: 'Generating voiceover...', progress: 60 });
       console.log('Generating voiceover...');
-      const narration = scenesArr.map((scene: any) => scene.narration).join(' ');
+      const narration = scenesArr.map((scene) => scene.narration).join(' ');
       const voiceover = await this.generateVoiceover(narration);
 
       // Step 5: Combine everything
@@ -75,7 +75,7 @@ export class FreeVideoGenerator {
       onProgress?.({ step: 'Finalizing... ', progress: 95 });
 
       // Calculate total duration
-      const totalDuration = scenesArr.reduce((sum: number, scene: any) => sum + (scene.duration_in_seconds || 0), 0);
+      const totalDuration = scenesArr.reduce((sum, scene) => sum + (scene.duration_in_seconds || 0), 0);
 
       return {
         id: this.generateVideoId(),

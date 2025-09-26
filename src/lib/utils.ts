@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
  * Safely formats a currency value to Indian Rupees
  * Handles strings, numbers, null, undefined
  */
-export function formatCurrency(value: any): string {
+export function formatCurrency(value: string | number | null | undefined): string {
   if (value === null || value === undefined) {
     return "₹0.00";
   }
@@ -27,7 +27,7 @@ export function formatCurrency(value: any): string {
  * Safely converts any value to a number
  * Returns 0 if conversion fails
  */
-export function safeNumber(value: any): number {
+export function safeNumber(value: string | number | null | undefined): number {
   if (typeof value === 'number') {
     return isNaN(value) ? 0 : value;
   }

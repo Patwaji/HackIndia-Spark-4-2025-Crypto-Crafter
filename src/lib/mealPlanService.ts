@@ -15,7 +15,7 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { MealPlan } from '@/lib/gemini';
+import type { MealPlan, MealPreferences, HealthGoals, BudgetConstraints } from '@/lib/gemini';
 
 export interface SavedMealPlan {
   id: string;
@@ -44,9 +44,9 @@ export interface MealPlanHistory {
   userId: string;
   mealPlanId: string;
   generatedAt: Date;
-  preferences: any;
-  goals: any;
-  budget: any;
+  preferences: MealPreferences;
+  goals: HealthGoals;
+  budget: BudgetConstraints;
 }
 
 class MealPlanService {

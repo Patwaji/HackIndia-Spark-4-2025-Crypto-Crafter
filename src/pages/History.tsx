@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { loadUserMealPlans, generateShoppingList, exportToCalendar } from '../lib/mealPlanService';
@@ -21,6 +21,7 @@ import {
   History as HistoryIcon
 } from 'lucide-react';
 import type { SavedMealPlan } from '../lib/mealPlanService';
+import type { MealPlan } from '../lib/gemini';
 
 const History: React.FC = () => {
   const { user } = useAuth();
@@ -31,11 +32,7 @@ const History: React.FC = () => {
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'cost'>('date');
   const [filterBy, setFilterBy] = useState<'all' | 'this_week' | 'this_month' | 'this_year'>('all');
 
-  useEffect(() => {
-    loadHistory();
-  }, [user]);
-
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
@@ -47,7 +44,11 @@ const History: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   const handleExportShoppingList = async (plan: SavedMealPlan) => {
     try {
@@ -93,27 +94,30 @@ const History: React.FC = () => {
     // Filter by time period
     const now = new Date();
     switch (filterBy) {
-      case 'this_week':
+      case 'this_week': {
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         filtered = filtered.filter(plan => {
           const planDate = plan.createdAt instanceof Date ? plan.createdAt : new Date(plan.createdAt);
           return planDate >= weekAgo;
         });
         break;
-      case 'this_month':
+      }
+      case 'this_month': {
         const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         filtered = filtered.filter(plan => {
           const planDate = plan.createdAt instanceof Date ? plan.createdAt : new Date(plan.createdAt);
           return planDate >= monthAgo;
         });
         break;
-      case 'this_year':
+      }
+      case 'this_year': {
         const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
         filtered = filtered.filter(plan => {
           const planDate = plan.createdAt instanceof Date ? plan.createdAt : new Date(plan.createdAt);
           return planDate >= yearAgo;
         });
         break;
+      }
     }
 
     // Filter by search term
@@ -150,15 +154,15 @@ const History: React.FC = () => {
 
   const filteredPlans = getFilteredPlans();
 
-  const formatDate = (date: any) => {
+  const formatDate = (date: Date | { toDate: () => Date }) => {
     if (!date) return 'Unknown';
-    const d = date instanceof Date ? date : new Date(date);
+    const d = date instanceof Date ? date : date.toDate();
     return d.toLocaleDateString();
   };
 
-  const getRelativeTime = (date: any) => {
+  const getRelativeTime = (date: Date | { toDate: () => Date }) => {
     if (!date) return 'Unknown';
-    const d = date instanceof Date ? date : new Date(date);
+    const d = date instanceof Date ? date : date.toDate();
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - d.getTime()) / 1000);
     
@@ -170,7 +174,7 @@ const History: React.FC = () => {
     return `${Math.floor(diffInSeconds / 2629746)} months ago`;
   };
 
-  const getMealCount = (mealPlan: any) => {
+  const getMealCount = (mealPlan: MealPlan) => {
     let count = 0;
     if (mealPlan.breakfast) count++;
     if (mealPlan.lunch) count++;
@@ -217,7 +221,7 @@ const History: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <Select value={filterBy} onValueChange={(value: any) => setFilterBy(value)}>
+              <Select value={filterBy} onValueChange={(value: 'all' | 'this_week' | 'this_month' | 'this_year') => setFilterBy(value)}>
                 <SelectTrigger className="w-40 bg-gray-700 border-gray-600 text-gray-300">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue />
@@ -229,7 +233,7 @@ const History: React.FC = () => {
                   <SelectItem value="this_year" className="text-gray-300 hover:bg-gray-700">This Year</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+              <Select value={sortBy} onValueChange={(value: 'date' | 'name' | 'cost') => setSortBy(value)}>
                 <SelectTrigger className="w-32 bg-gray-700 border-gray-600 text-gray-300">
                   <SelectValue />
                 </SelectTrigger>

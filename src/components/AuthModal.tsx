@@ -58,11 +58,11 @@ export default function AuthModal({ open, onOpenChange }: AuthModalProps) {
         description: "Welcome to NutriPlan! Your account has been created successfully."
       });
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: error.message || "Failed to create account. Please try again."
+        description: (error instanceof Error && error.message) || "Failed to create account. Please try again."
       });
     } finally {
       setIsLoading(false);
@@ -80,11 +80,11 @@ export default function AuthModal({ open, onOpenChange }: AuthModalProps) {
         description: "You have successfully logged in."
       });
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.message || "Invalid email or password. Please try again."
+        description: (error instanceof Error && error.message) || "Invalid email or password. Please try again."
       });
     } finally {
       setIsLoading(false);
@@ -100,11 +100,11 @@ export default function AuthModal({ open, onOpenChange }: AuthModalProps) {
         description: "You have successfully signed in with Google."
       });
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: "destructive",
         title: "Google Sign-in Failed",
-        description: error.message || "Failed to sign in with Google. Please try again."
+        description: (error instanceof Error && error.message) || "Failed to sign in with Google. Please try again."
       });
     } finally {
       setIsLoading(false);

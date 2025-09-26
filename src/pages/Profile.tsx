@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { User as FirebaseUser, UserInfo } from 'firebase/auth';
 import { useAuth } from '../hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -38,7 +39,7 @@ const Profile: React.FC = () => {
       .slice(0, 2);
   };
 
-  const getMemberSince = (user: any) => {
+  const getMemberSince = (user: FirebaseUser) => {
     if (user?.metadata?.creationTime) {
       return new Date(user.metadata.creationTime).toLocaleDateString();
     }
@@ -153,7 +154,7 @@ const Profile: React.FC = () => {
                   <div>
                     <Label className="text-gray-300">Sign-in Method</Label>
                     <div className="mt-1">
-                      {user.providerData?.map((provider: any, index: number) => (
+                      {user.providerData?.map((provider: UserInfo, index: number) => (
                         <Badge key={index} variant="outline" className="mr-2 border-gray-600 text-gray-300">
                           {provider.providerId === 'google.com' ? 'Google' : 'Email'}
                         </Badge>

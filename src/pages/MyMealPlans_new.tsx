@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { loadUserMealPlans, deleteMealPlan, SavedMealPlan, generateShoppingList, exportToCalendar } from '../lib/mealPlanService';
+import type { MealPlan } from '../lib/gemini';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -28,11 +29,7 @@ const MyMealPlans: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadMealPlans();
-  }, [user]);
-
-  const loadMealPlans = async () => {
+  const loadMealPlans = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
@@ -44,7 +41,11 @@ const MyMealPlans: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadMealPlans();
+  }, [loadMealPlans]);
 
   const handleDeletePlan = async (planId: string) => {
     if (!user || !confirm('Are you sure you want to delete this meal plan?')) return;
@@ -106,18 +107,18 @@ const MyMealPlans: React.FC = () => {
     plan.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatDate = (date: any) => {
+  const formatDate = (date: Date | { toDate: () => Date }) => {
     if (!date) return 'Unknown';
-    const d = date.toDate ? date.toDate() : new Date(date);
+    const d = typeof date === 'object' && 'toDate' in date ? date.toDate() : new Date(date);
     return d.toLocaleDateString();
   };
 
-  const getMealCount = (mealPlan: any) => {
+  const getMealCount = (mealPlan: MealPlan) => {
     let count = 0;
     if (mealPlan.breakfast) count++;
     if (mealPlan.lunch) count++;
     if (mealPlan.dinner) count++;
-    if (mealPlan.snacks) count++;
+    if (mealPlan.snack) count++;
     return count;
   };
 
