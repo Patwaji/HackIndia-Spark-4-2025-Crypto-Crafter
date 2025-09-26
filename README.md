@@ -227,10 +227,6 @@ We welcome contributions! Here's how you can help:
 - Add tests for new features
 - Update documentation
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## 🙏 Acknowledgments
 
 - **Google Gemini AI** for powerful language processing
@@ -238,12 +234,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **shadcn/ui** for beautiful component library
 - **Tailwind CSS** for flexible styling system
 - **HackIndia Spark 4 2025** for the opportunity to innovate
-
-## 📞 Support & Contact
-
-- **Issues**: [GitHub Issues](https://github.com/Patwaji/HackIndia-Spark-4-2025-Crypto-Crafter/issues)
-- **Email**: [your-email@example.com]
-- **Twitter**: [@YourHandle]
 
 ---
 
