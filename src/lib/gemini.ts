@@ -1,6 +1,11 @@
 import { GoogleGenerativeAI, GoogleGenerativeAIResponseError } from '@google/generative-ai';
 import { safeNumber } from './utils';
 
+// 🏪 INDIAN MARKET PRICING (September 2025)
+// Enforced in AI prompts to ensure realistic meal costs
+// Basic ingredients: Rice ₹50-120/kg, Dal ₹90-150/kg, Vegetables ₹15-90/kg
+// Meal costs: Breakfast ₹25-45, Lunch ₹60-90, Snack ₹15-35, Dinner ₹50-80
+
 // Initialize Gemini AI with secure environment variable
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -129,14 +134,37 @@ CRITICAL REQUIREMENTS:
 4. CALORIE TARGET: ***CRITICAL*** Total daily calories MUST be between ${goals.calorieTarget - 50} and ${goals.calorieTarget + 50} calories. Calculate each meal's calories carefully and ensure the sum equals ${goals.calorieTarget} calories (±50). DO NOT create low-calorie meal plans.
 5. BUDGET: Total cost must not exceed ₹${budget.dailyBudget}
 
-INDIAN MARKET PRICING (Use these exact ranges):
-- Rice/wheat: ₹40-60 per kg
-- Dal/pulses: ₹80-120 per kg  
-- Vegetables: ₹20-80 per kg
-- Milk: ₹50-60 per liter
-- Cooking oil: ₹120-160 per liter
-- Spices: ₹100-300 per kg
-- Typical meal cost: ₹30-120
+INDIAN MARKET PRICING (September 2025 - Use these EXACT current rates):
+STAPLES:
+- Rice (premium basmati): ₹80-120 per kg | Rice (regular): ₹50-70 per kg
+- Wheat flour: ₹35-50 per kg | Atta (whole wheat): ₹40-55 per kg
+- Dal/pulses (toor/arhar): ₹120-150 per kg | Moong dal: ₹110-140 per kg | Chana dal: ₹90-120 per kg
+
+VEGETABLES (seasonal pricing):
+- Onions: ₹25-40 per kg | Tomatoes: ₹30-60 per kg | Potatoes: ₹20-35 per kg
+- Green vegetables (spinach/fenugreek): ₹15-30 per kg | Cauliflower: ₹25-45 per kg
+- Bell peppers: ₹60-90 per kg | Carrots: ₹30-50 per kg | Cucumbers: ₹20-40 per kg
+
+PROTEINS & DAIRY:
+- Milk: ₹55-65 per liter | Curd/yogurt: ₹50-70 per kg | Paneer: ₹300-400 per kg
+- Eggs: ₹6-8 per piece | Chicken: ₹180-250 per kg | Fish: ₹200-400 per kg
+
+COOKING ESSENTIALS:
+- Cooking oil (refined): ₹140-180 per liter | Mustard oil: ₹160-200 per liter
+- Ghee: ₹450-600 per kg | Basic spices: ₹150-400 per kg
+- Sugar: ₹42-48 per kg | Salt: ₹20-25 per kg
+
+REALISTIC MEAL COSTS:
+- Simple breakfast (poha/upma): ₹25-45 per serving
+- Standard lunch (dal-rice-sabzi): ₹60-90 per serving  
+- Light snack: ₹15-35 per serving
+- Dinner (roti-sabzi-dal): ₹50-80 per serving
+
+PRICING ENFORCEMENT RULES:
+1. Calculate ingredient costs based on EXACT portions used (e.g., 100g rice from 1kg costs ₹5-7)
+2. Add 15-20% for cooking losses and minor ingredients (salt, spices)
+3. MUST use current market rates - no outdated pricing
+4. For premium ingredients, use higher end of range; for budget meals, use lower end
 
 MEAL STRUCTURE (EXACT CALORIE DISTRIBUTION):
 - Breakfast: ${Math.round(goals.calorieTarget * 0.25)} calories (25% of ${goals.calorieTarget})
@@ -148,8 +176,9 @@ TOTAL MUST EQUAL: ${goals.calorieTarget} calories
 Create meals that are:
 - Authentic to the selected cuisine
 - Nutritionally balanced for the health goal
-- Within budget constraints
+- STRICTLY within budget: Total ≤ ₹${budget.dailyBudget} (NO EXCEPTIONS)
 - Free from restricted/disliked ingredients
+- Priced using current September 2025 Indian market rates ONLY
 - If budget is below ₹200/day, focus on dal-rice, seasonal vegetables, and affordable proteins
 
 Create a meal plan with breakfast, lunch, snack, and dinner. Each meal must include:
@@ -157,14 +186,22 @@ Create a meal plan with breakfast, lunch, snack, and dinner. Each meal must incl
 - Detailed ingredient list with measurements in Indian units (kg, grams, liters, cups, teaspoons)
 - Step-by-step cooking instructions (5-8 steps)
 - Accurate nutritional breakdown (calories, protein, carbs, fat, fiber, sugar)
-- Cost estimation in Indian Rupees (₹)
+- PRECISE cost estimation using September 2025 Indian market rates (calculate each ingredient cost based on actual portion used)
 - Preparation time
 - Indian cooking tips and techniques
+
+COST CALCULATION ENFORCEMENT:
+1. For each ingredient, calculate: (quantity used ÷ base unit) × current market price
+2. Example: 200g rice from ₹60/kg = (0.2 × 60) = ₹12
+3. Add cooking oil, spices, and other minor costs
+4. Round to nearest rupee, be realistic and accurate
+5. Total meal cost MUST reflect actual market prices, not arbitrary numbers
 
 CRITICAL VALIDATION BEFORE RESPONDING: 
 1. Calculate breakfast + lunch + snack + dinner calories = MUST be between ${goals.calorieTarget - 50} and ${goals.calorieTarget + 50} calories
 2. If total calories are below ${goals.calorieTarget - 50}, increase portions or add healthy ingredients
 3. If total calories exceed ${goals.calorieTarget + 50}, reduce portions
+4. VERIFY each meal cost is calculated using current market rates above
 4. Double-check NO restricted ingredients (${preferences.dietaryRestrictions.join(', ') || 'None'}) are included
 
 Return ONLY valid JSON in this exact format:
@@ -211,10 +248,23 @@ Return ONLY valid JSON in this exact format:
     const totalCost = mealPlan.totalCost || 0;
     const totalCalories = mealPlan.totalNutrition?.calories || 0;
     
-    // Budget validation
-    if (totalCost > budget.dailyBudget * 1.1) { // Allow 10% tolerance
-      console.warn(`Generated meal plan cost (₹${totalCost}) exceeds budget (₹${budget.dailyBudget})`);
+    // Budget validation with pricing verification
+    if (totalCost > budget.dailyBudget * 1.05) { // Strict 5% tolerance only
+      console.warn(`⚠️ Generated meal plan cost (₹${totalCost}) exceeds budget (₹${budget.dailyBudget})`);
+      console.warn('🔍 Cost breakdown - verify market rates were used correctly');
     }
+    
+    // Validate meal costs are realistic based on market rates
+    const meals = [mealPlan.breakfast, mealPlan.lunch, mealPlan.snack, mealPlan.dinner];
+    meals.forEach((meal, index) => {
+      const mealNames = ['breakfast', 'lunch', 'snack', 'dinner'];
+      const expectedMin = index === 2 ? 15 : (index === 1 ? 60 : 25); // Snack min ₹15, lunch min ₹60, others min ₹25
+      const expectedMax = index === 2 ? 35 : (index === 1 ? 120 : 80); // Realistic maximum costs
+      
+      if (meal.cost < expectedMin || meal.cost > expectedMax) {
+        console.warn(`⚠️ ${mealNames[index]} cost (₹${meal.cost}) seems unrealistic. Expected: ₹${expectedMin}-₹${expectedMax}`);
+      }
+    });
     
     // Calorie validation - stricter enforcement
     const calorieVariance = Math.abs(totalCalories - goals.calorieTarget);
