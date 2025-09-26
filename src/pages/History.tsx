@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { loadUserMealPlans, generateShoppingList, exportToCalendar } from '../lib/mealPlanService';
+import { Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -27,6 +28,11 @@ const History: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [mealPlans, setMealPlans] = useState<SavedMealPlan[]>([]);
+
+  // Helper function to safely convert Timestamp to Date
+  const getDateFromTimestamp = (timestamp: Timestamp): Date => {
+    return timestamp.toDate();
+  };
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'cost'>('date');
@@ -97,7 +103,7 @@ const History: React.FC = () => {
       case 'this_week': {
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         filtered = filtered.filter(plan => {
-          const planDate = plan.createdAt instanceof Date ? plan.createdAt : new Date(plan.createdAt);
+          const planDate = getDateFromTimestamp(plan.createdAt);
           return planDate >= weekAgo;
         });
         break;
@@ -105,7 +111,7 @@ const History: React.FC = () => {
       case 'this_month': {
         const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         filtered = filtered.filter(plan => {
-          const planDate = plan.createdAt instanceof Date ? plan.createdAt : new Date(plan.createdAt);
+          const planDate = getDateFromTimestamp(plan.createdAt);
           return planDate >= monthAgo;
         });
         break;
@@ -113,7 +119,7 @@ const History: React.FC = () => {
       case 'this_year': {
         const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
         filtered = filtered.filter(plan => {
-          const planDate = plan.createdAt instanceof Date ? plan.createdAt : new Date(plan.createdAt);
+          const planDate = getDateFromTimestamp(plan.createdAt);
           return planDate >= yearAgo;
         });
         break;
@@ -142,8 +148,8 @@ const History: React.FC = () => {
       case 'date':
       default:
         filtered.sort((a, b) => {
-          const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-          const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+          const dateA = getDateFromTimestamp(a.createdAt);
+          const dateB = getDateFromTimestamp(b.createdAt);
           return dateB.getTime() - dateA.getTime();
         });
         break;
@@ -154,13 +160,13 @@ const History: React.FC = () => {
 
   const filteredPlans = getFilteredPlans();
 
-  const formatDate = (date: Date | { toDate: () => Date }) => {
+  const formatDate = (date: Date | Timestamp) => {
     if (!date) return 'Unknown';
     const d = date instanceof Date ? date : date.toDate();
     return d.toLocaleDateString();
   };
 
-  const getRelativeTime = (date: Date | { toDate: () => Date }) => {
+  const getRelativeTime = (date: Date | Timestamp) => {
     if (!date) return 'Unknown';
     const d = date instanceof Date ? date : date.toDate();
     const now = new Date();

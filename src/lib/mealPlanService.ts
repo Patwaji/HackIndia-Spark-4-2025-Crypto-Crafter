@@ -25,8 +25,8 @@ export interface SavedMealPlan {
   description?: string;
   tags: string[];
   isFavorite: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
   totalCost: number;
   totalCalories: number;
   isTemplate: boolean; // Whether this is a reusable template
@@ -68,8 +68,8 @@ class MealPlanService {
       description,
       tags,
       isFavorite: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
       totalCost: this.calculateTotalCost(mealPlan),
       totalCalories: this.calculateTotalCalories(mealPlan),
       isTemplate: false
